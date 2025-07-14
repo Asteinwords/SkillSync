@@ -25,7 +25,7 @@ const Register = () => {
     <div className="min-h-screen grid md:grid-cols-2 font-body">
       {/* Left Branding */}
       <div className="bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
-        <h1 className="text-4xl font-display font-bold text-indigo-300 mb-4">SkillSync 🎯</h1>
+        <h1 className="text-4xl font-display font-bold text-indigo-300 mb-4">SkillSync</h1>
         <p className="text-lg text-slate-300 italic max-w-md">
           "Learn what you love. Teach what you know. SkillSync is your barter buddy."
         </p>

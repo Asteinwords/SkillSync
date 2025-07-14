@@ -190,10 +190,12 @@ import Profile from "./pages/Profile";
 import LiveRoom from './pages/LiveRoom';
 import Rooms from "./pages/Rooms";
 import Chat from "./pages/Chat";
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
     <Router>
+      <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
       <Navbar />
       <div className="min-h-screen bg-gray-100">
         <Routes>

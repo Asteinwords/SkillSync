@@ -85,11 +85,11 @@ import React, { useState } from 'react';
 import API from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) =>
@@ -98,28 +98,26 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       const { data } = await API.post('/users/login', form);
 
-      // ✅ Ensure both token and user ID are set
       const token = data.token;
       const userId = data.user?._id || data._id;
 
       if (!token || !userId) {
-        throw new Error('Invalid login response: missing token or user ID');
+        throw new Error('Invalid login response');
       }
 
       localStorage.setItem('token', token);
       localStorage.setItem('userId', userId);
 
-      alert('✅ Login successful');
+      toast.success('🎉 Login successful');
       navigate('/dashboard');
     } catch (err) {
-      const msg = err.response?.data?.message || 'Login failed. Please try again.';
-      setError(msg);
-      console.error('❌ Login error:', err);
+      const msg = err.response?.data?.message || 'Login failed. Try again.';
+      toast.error(`❌ ${msg}`);
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -148,10 +146,6 @@ const Login = () => {
             Login to SkillSync
           </h2>
 
-          {error && (
-            <p className="text-red-600 text-sm text-center font-medium">{error}</p>
-          )}
-
           <input
             type="email"
             name="email"
@@ -177,7 +171,7 @@ const Login = () => {
             disabled={loading}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 text-white py-2 rounded-md hover:opacity-90 transition flex items-center justify-center"
           >
-            {loading ? (
+            {loading && (
               <svg
                 className="animate-spin h-5 w-5 text-white mr-2"
                 viewBox="0 0 24 24"
@@ -196,7 +190,7 @@ const Login = () => {
                   d="M4 12a8 8 0 018-8v8z"
                 ></path>
               </svg>
-            ) : null}
+            )}
             {loading ? 'Logging in...' : 'Login'}
           </button>
 

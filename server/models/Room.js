@@ -11,7 +11,11 @@ const roomSchema = new mongoose.Schema({
     leftAt: { type: Date, default: null }
   }
 
-  ]
+  ],
+  ended: { type: Boolean, default: false },
+
+  isRecording: { type: Boolean, default: false },
+  recordRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 
 module.exports = mongoose.model('Room', roomSchema);

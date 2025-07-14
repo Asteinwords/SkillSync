@@ -9,6 +9,8 @@ const sessionSchema = new mongoose.Schema({
     description: { type: String },
     status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
      meetLink: { type: String }, 
+     meetingId: { type: String }, // ✅ new
+  meetingPassword: { type: String },
     requesterFeedback: {
         rating: { type: Number, min: 1, max: 5 },
         comment: String
@@ -16,7 +18,13 @@ const sessionSchema = new mongoose.Schema({
     recipientFeedback: {
         rating: { type: Number, min: 1, max: 5 },
         comment: String
-    }
+    },
+    status: {
+  type: String,
+  enum: ['pending', 'accepted', 'rejected', 'done'], // ✅ add 'done' here
+  default: 'pending'
+},
+
 }, {
     timestamps: true,
 });

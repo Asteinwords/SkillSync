@@ -12,6 +12,8 @@ const {
   sendFollowRequest,
   acceptFollowRequest,
   searchUsers,
+  updateProfileImage,
+  updateProfileInfo,
 } = require('../controllers/userController');
 const { getMutualFollowers } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
@@ -20,6 +22,8 @@ const User = require('../models/User');
 // Public Routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+// routes/userRoutes.js
+router.put('/profile-info', protect, updateProfileInfo);
 
 // Protected Routes
 router.get('/profile', protect, (req, res) => {
@@ -34,6 +38,8 @@ router.get('/me', protect, getProfile);
 router.get('/:id/profile', getUserProfile);
 router.post('/follow', protect, sendFollowRequest);
 router.post('/accept-follow', protect, acceptFollowRequest);
+// routes/userRoutes.js
+router.put('/profile-image', protect, updateProfileImage);
 
 // 🔄 Get pending follow requests for the logged-in user
 router.get('/follow-requests', protect, async (req, res) => {
@@ -67,6 +73,20 @@ router.get('/follow-status', protect, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Failed to fetch follow status' });
+  }
+});
+// DELETE /users/unfollow/:id
+router.delete('/unfollow/:id', protect, async (req, res) => {
+  const userId = req.user._id;
+  const targetId = req.params.id;
+
+  try {
+    await User.findByIdAndUpdate(userId, { $pull: { following: targetId } });
+    await User.findByIdAndUpdate(targetId, { $pull: { followers: userId } });
+
+    res.status(200).json({ message: 'Unfollowed successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Unfollow failed' });
   }
 });
 

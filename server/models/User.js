@@ -13,8 +13,18 @@ const userSchema = new mongoose.Schema({
   points: { type: Number, default: 0 },
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // incoming requests
-
+followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+profileImage: { type: String, default: '' }, // can be URL or base64
+ // incoming requests
+aboutMe: { type: String },
+education: [
+  {
+    degree: String,
+    institute: String,
+    year: String
+  }
+]
+,
   skillsOffered: [
   {
     skill: String,

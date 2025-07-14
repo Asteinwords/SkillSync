@@ -223,31 +223,76 @@ exports.sendFollowRequest = async (req, res) => {
   }
 };
 
+// exports.acceptFollowRequest = async (req, res) => {
+//   const { senderId } = req.body;
+
+//   const user = await User.findById(req.user._id);
+//   const sender = await User.findById(senderId);
+
+//   if (!user || !sender) return res.status(404).json({ message: 'User not found' });
+
+//   // Ensure request exists
+//   if (!user.followRequests.includes(senderId))
+//     return res.status(400).json({ message: 'No such follow request' });
+
+//   // Add each other
+//   user.followers.push(senderId);
+//   user.following.push(senderId);
+//   sender.followers.push(user._id);
+//   sender.following.push(user._id);
+
+//   // Remove request
+//   user.followRequests = user.followRequests.filter(id => id.toString() !== senderId);
+
+//   await user.save();
+//   await sender.save();
+
+//   res.json({ message: 'Follow request accepted' });
+// };
 exports.acceptFollowRequest = async (req, res) => {
   const { senderId } = req.body;
 
-  const user = await User.findById(req.user._id);
-  const sender = await User.findById(senderId);
+  try {
+    const user = await User.findById(req.user._id);
+    const sender = await User.findById(senderId);
 
-  if (!user || !sender) return res.status(404).json({ message: 'User not found' });
+    if (!user || !sender) return res.status(404).json({ message: 'User not found' });
 
-  // Ensure request exists
-  if (!user.followRequests.includes(senderId))
-    return res.status(400).json({ message: 'No such follow request' });
+    // Ensure request exists
+    if (!user.followRequests.includes(senderId))
+      return res.status(400).json({ message: 'No such follow request' });
 
-  // Add each other
-  user.followers.push(senderId);
-  user.following.push(senderId);
-  sender.followers.push(user._id);
-  sender.following.push(user._id);
+    // Remove senderId from followRequests
+    user.followRequests = user.followRequests.filter(id => id.toString() !== senderId);
 
-  // Remove request
-  user.followRequests = user.followRequests.filter(id => id.toString() !== senderId);
+    // Make user follow sender if not already
+    if (!user.following.includes(senderId)) {
+      user.following.push(senderId);
+    }
 
-  await user.save();
-  await sender.save();
+    // Make sender a follower if not already
+    if (!user.followers.includes(senderId)) {
+      user.followers.push(senderId);
+    }
 
-  res.json({ message: 'Follow request accepted' });
+    // Make sender follow user if not already
+    if (!sender.following.includes(user._id)) {
+      sender.following.push(user._id);
+    }
+
+    // Make user a follower of sender if not already
+    if (!sender.followers.includes(user._id)) {
+      sender.followers.push(user._id);
+    }
+
+    await user.save();
+    await sender.save();
+
+    res.json({ message: 'Follow request accepted' });
+  } catch (err) {
+    console.error('❌ Accept Follow Error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 };
 
 
@@ -297,3 +342,30 @@ exports.getMutualFollowers = async (req, res) => {
   }
 };
 
+// controllers/userController.js
+exports.updateProfileImage = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { profileImage: req.body.image },
+      { new: true }
+    );
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update profile image' });
+  }
+};
+// controllers/userController.js
+exports.updateProfileInfo = async (req, res) => {
+  try {
+    const { aboutMe, education } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { aboutMe, education },
+      { new: true }
+    );
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update profile info' });
+  }
+};
