@@ -1,41 +1,10 @@
-// import React, { useEffect, useState } from 'react';
-// import Sidebar from './Sidebar';
-// import ChatWindow from './ChatWindow';
-// import API from '../../services/api';
-
-// const ChatApp = () => {
-//   const [contacts, setContacts] = useState([]);
-//   const [activeUser, setActiveUser] = useState(null);
-
-//   useEffect(() => {
-//     const fetchContacts = async () => {
-//       try {
-//         const res = await API.get('/users/mutual-followers', {
-//           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-//         });
-//         setContacts(res.data);
-//       } catch (err) {
-//         console.error('Error fetching mutual followers:', err);
-//       }
-//     };
-
-//     fetchContacts();
-//   }, []);
-
-//   return (
-//     <div className="flex h-screen bg-gradient-to-r from-slate-100 via-white to-slate-200">
-//       <Sidebar contacts={contacts} onUserSelect={setActiveUser} />
-//       <ChatWindow activeUser={activeUser} />
-//     </div>
-//   );
-// };
-
-// export default ChatApp;
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
 import API from '../../services/api';
+import Stars from '../../assets/stars.svg';
 
 const ChatApp = () => {
   const [contacts, setContacts] = useState([]);
@@ -50,12 +19,9 @@ const ChatApp = () => {
         });
         setContacts(res.data);
 
-        // 👇 Check if user was passed from navigation
         if (location.state?.receiverId) {
           const preselected = res.data.find(u => u._id === location.state.receiverId);
-          if (preselected) {
-            setActiveUser(preselected);
-          }
+          if (preselected) setActiveUser(preselected);
         }
       } catch (err) {
         console.error('Error fetching mutual followers:', err);
@@ -66,10 +32,17 @@ const ChatApp = () => {
   }, [location.state]);
 
   return (
-    <div className="flex h-screen bg-gradient-to-r from-slate-100 via-white to-slate-200">
+    <motion.div className="flex h-screen bg-gradient-to-br from-blue-200 via-purple-100 to-pink-200 relative">
+      {/* Stars BG */}
+      <img
+        src={Stars}
+        alt="Stars"
+        className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none"
+      />
+
       <Sidebar contacts={contacts} onUserSelect={setActiveUser} />
       <ChatWindow activeUser={activeUser} />
-    </div>
+    </motion.div>
   );
 };
 

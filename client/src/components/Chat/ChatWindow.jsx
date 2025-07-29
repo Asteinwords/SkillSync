@@ -127,7 +127,7 @@ const ChatWindow = ({ activeUser }) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-b from-slate-100 to-white">
+    <div className="mt-6 flex-1 flex flex-col bg-gradient-to-b from-slate-100 to-white">
       {/* Header */}
       <div className="p-4 bg-blue-600 text-white font-semibold text-lg shadow-sm flex justify-between items-center">
         <span>{activeUser.name}</span>
@@ -157,21 +157,22 @@ const ChatWindow = ({ activeUser }) => {
               className={`flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`px-4 py-2 rounded-xl shadow-sm max-w-xs text-sm cursor-pointer transition-all duration-150
-                  ${selectedMessages.includes(m._id) ? 'ring-2 ring-red-400' : ''}
-                  ${
-                    isFromCurrentUser
-                      ? 'bg-blue-500 text-white rounded-tr-sm'
-                      : 'bg-gray-200 text-gray-800 rounded-tl-sm'
-                  }`}
-              >
-                <p className={m.isDeleted ? 'italic text-gray-400' : ''}>
-                  {m.isDeleted ? 'Message deleted' : m.message}
-                </p>
-                <p className="text-[10px] mt-1 text-right opacity-70">
-                  {new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
+    onClick={() => m._id && toggleSelect(m._id)}
+    className={`px-4 py-2 rounded-xl shadow max-w-[70%] text-sm cursor-pointer
+      ${selectedMessages.includes(m._id) ? 'ring-2 ring-red-400' : ''}
+      ${
+        isFromCurrentUser
+          ? 'bg-blue-500 text-white rounded-tr-sm'
+          : 'bg-gray-200 text-gray-800 rounded-tl-sm'
+      }`}
+  >
+    <p className={m.isDeleted ? 'italic text-gray-400' : ''}>
+      {m.isDeleted ? 'Message deleted' : m.message}
+    </p>
+    <p className="text-[10px] mt-1 text-right opacity-70">
+      {new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+    </p>
+  </div>
             </div>
           );
         })}
@@ -185,28 +186,26 @@ const ChatWindow = ({ activeUser }) => {
       )}
 
       {/* Input Area */}
-      <div className="p-4 bg-white border-t shadow-inner flex gap-2 items-center relative">
-        <button
-          onClick={() => setShowEmojiPicker((prev) => !prev)}
-          className="text-2xl px-2"
-        >
-          😊
-        </button>
-        <input
-          type="text"
-          value={msg}
-          onChange={(e) => setMsg(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder="Type a message..."
-          className="flex-1 border border-blue-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          onClick={sendMessage}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition"
-        >
-          Send
-        </button>
-      </div>
+   <div className="p-4 bg-white border-t shadow-inner flex gap-2 items-center sticky bottom-0">
+  <button onClick={() => setShowEmojiPicker((prev) => !prev)} className="text-2xl px-2">
+    😊
+  </button>
+  <input
+    type="text"
+    value={msg}
+    onChange={(e) => setMsg(e.target.value)}
+    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+    placeholder="Type a message..."
+    className="flex-1 border border-blue-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+  <button
+    onClick={sendMessage}
+    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition"
+  >
+    Send
+  </button>
+</div>
+
     </div>
   );
 };

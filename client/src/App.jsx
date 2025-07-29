@@ -191,6 +191,8 @@ import LiveRoom from './pages/LiveRoom';
 import Rooms from "./pages/Rooms";
 import Chat from "./pages/Chat";
 import { Toaster } from 'react-hot-toast';
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 
 function App() {
   return (
@@ -212,9 +214,11 @@ function App() {
           <Route path="/schedule" element={<PrivateRoute><ScheduleSession /></PrivateRoute>} />
           
           <Route path="/users/:id/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-          <Route path="/live/:roomId" element={<PrivateRoute><LiveRoom /></PrivateRoute>} />
-          <Route path="/rooms" element={<PrivateRoute><Rooms /></PrivateRoute>} />
+          <Route path="/live-room/:roomId" element={<PrivateRoute><LiveRoom /></PrivateRoute>} />
+          <Route path="/room" element={<PrivateRoute><Rooms /></PrivateRoute>} />
           <Route path="/chatt" element={<PrivateRoute><Chat /></PrivateRoute>} />
+          <Route path="/forgot-password" element={<PrivateRoute><ForgotPassword /></PrivateRoute>} />
+          <Route path="/reset_password/:id/:token" element={<PrivateRoute><ResetPassword /></PrivateRoute>} />
 
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFound />} />
