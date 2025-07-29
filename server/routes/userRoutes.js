@@ -14,6 +14,7 @@ const {
   searchUsers,
   updateProfileImage,
   updateProfileInfo,
+  updateStreak,
 } = require('../controllers/userController');
 const { getMutualFollowers } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
@@ -40,7 +41,7 @@ router.post('/follow', protect, sendFollowRequest);
 router.post('/accept-follow', protect, acceptFollowRequest);
 // routes/userRoutes.js
 router.put('/profile-image', protect, updateProfileImage);
-
+router.post('/update-streak', protect, updateStreak);
 // 🔄 Get pending follow requests for the logged-in user
 router.get('/follow-requests', protect, async (req, res) => {
   try {

@@ -14,7 +14,7 @@ const userRoutes = require('./routes/userRoutes');
 const roomRoutes = require('./routes/roomRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const setupChatSocket = require('./chatSocket');
-
+require('./scheduler');
 dotenv.config();
 
 const app = express();
@@ -153,7 +153,7 @@ io.on('connection', (socket) => {
       }
 
       socket.emit('room-joined');
-      socket.serve.to(roomId).emit('user-connected', userId);
+      socket.server.to(roomId).emit('user-connected', userId);
     } catch (err) {
       console.error('❌ [join-room] Error:', err);
       socket.emit('error', 'Failed to join room');

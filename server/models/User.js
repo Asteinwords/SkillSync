@@ -11,47 +11,45 @@ const userSchema = new mongoose.Schema({
   },
   password: { type: String, required: true },
   points: { type: Number, default: 0 },
+  streak: { type: Number, default: 0 }, // Current streak count
+  lastVisited: { type: Date }, // Last date the user visited
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-profileImage: { type: String, default: '' }, // can be URL or base64
- // incoming requests
-aboutMe: { type: String },
-education: [
-  {
-    degree: String,
-    institute: String,
-    year: String
-  }
-]
-,
-  skillsOffered: [
-  {
-    skill: String,
-    level: {
-      type: String,
-      enum: ['Beginner', 'Intermediate', 'Expert'],
-      default: 'Beginner'
+  following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  profileImage: { type: String, default: '' },
+  aboutMe: { type: String },
+  education: [
+    {
+      degree: String,
+      institute: String,
+      year: String
     }
-  }
-],
-points: { type: Number, default: 0 },
+  ],
+  skillsOffered: [
+    {
+      skill: String,
+      level: {
+        type: String,
+        enum: ['Beginner', 'Intermediate', 'Expert'],
+        default: 'Beginner'
+      }
+    }
+  ],
   badge: {
     type: String,
     enum: ['Beginner', 'Contributor', 'Mentor', 'Expert'],
     default: 'Beginner',
   },
-skillsWanted: [
-  {
-    skill: String,
-    level: {
-      type: String,
-      enum: ['Beginner', 'Intermediate', 'Expert'],
-      default: 'Beginner'
+  skillsWanted: [
+    {
+      skill: String,
+      level: {
+        type: String,
+        enum: ['Beginner', 'Intermediate', 'Expert'],
+        default: 'Beginner'
+      }
     }
-  }
-],
-
+  ],
 }, { timestamps: true });
 
 // Hash password before saving
@@ -66,7 +64,5 @@ userSchema.pre('save', async function (next) {
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
-
-
 
 module.exports = mongoose.model('User', userSchema);

@@ -193,6 +193,7 @@ import Chat from "./pages/Chat";
 import { Toaster } from 'react-hot-toast';
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
+import Heatmap from "./components/Heatmap";
 
 function App() {
   return (
@@ -212,7 +213,7 @@ function App() {
           <Route path="/chat" element={<PrivateRoute><ChatSidebar /></PrivateRoute>} />
           <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>} />
           <Route path="/schedule" element={<PrivateRoute><ScheduleSession /></PrivateRoute>} />
-          
+          <Route path="/heat" element={<PrivateRoute><Heatmap /></PrivateRoute>} />
           <Route path="/users/:id/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/live-room/:roomId" element={<PrivateRoute><LiveRoom /></PrivateRoute>} />
           <Route path="/room" element={<PrivateRoute><Rooms /></PrivateRoute>} />
