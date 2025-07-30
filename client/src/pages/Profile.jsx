@@ -38,42 +38,62 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { data } = await API.get(`/users/${id}/profile`);
-      setProfile(data);
+      try {
+        const { data } = await API.get(`/users/${id}/profile`);
+        setProfile(data);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to load profile');
+      }
     };
     const fetchFollowStatus = async () => {
-      const { data } = await API.get('/users/follow-status', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setFollows(data.follows);
-      setMutuals(data.mutuals);
+      try {
+        const { data } = await API.get('/users/follow-status', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setFollows(data.follows);
+        setMutuals(data.mutuals);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to fetch follow status');
+      }
     };
     fetchProfile();
     fetchFollowStatus();
-  }, [id]);
+  }, [id, token]);
 
   const sendFollowRequest = async () => {
-    await API.post(
-      '/users/follow',
-      { targetId: id },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setFollows((prev) => ({ ...prev, [id]: true }));
-    alert('✅ Follow request sent');
+    try {
+      await API.post(
+        '/users/follow',
+        { targetId: id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setFollows((prev) => ({ ...prev, [id]: true }));
+      alert('✅ Follow request sent');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to send follow request');
+    }
   };
 
   const unfollowUser = async () => {
-    await API.delete(`/users/unfollow/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const updatedFollows = { ...follows };
-    delete updatedFollows[id];
-    setFollows(updatedFollows);
+    try {
+      await API.delete(`/users/unfollow/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const updatedFollows = { ...follows };
+      delete updatedFollows[id];
+      setFollows(updatedFollows);
 
-    const updatedMutuals = { ...mutuals };
-    delete updatedMutuals[id];
-    setMutuals(updatedMutuals);
-    alert('👋 Unfollowed user');
+      const updatedMutuals = { ...mutuals };
+      delete updatedMutuals[id];
+      setMutuals(updatedMutuals);
+      alert('👋 Unfollowed user');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to unfollow user');
+    }
   };
 
   if (!profile) return <p className="text-center mt-20 text-xl animate-pulse text-indigo-400">Loading...</p>;
@@ -103,7 +123,7 @@ const Profile = () => {
             <div className="relative mb-6">
               <div className="w-40 h-40 rounded-full overflow-hidden shadow-xl border-2 border-indigo-300">
                 <img
-                  src={user.profileImage || `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${encodeURIComponent(user.name)}`}
+                  src={user.profileImage || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user.name)}`}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
@@ -275,7 +295,7 @@ const Profile = () => {
                       transition={{ delay: i * 0.1 }}
                     >
                       <img
-                        src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(f.from)}`}
+                        src={f.profileImage || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(f.from)}`}
                         alt={f.from}
                         className="w-10 h-10 rounded-full border"
                       />

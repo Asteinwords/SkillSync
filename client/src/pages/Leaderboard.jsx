@@ -139,7 +139,7 @@ const Leaderboard = () => {
                       #{index + 1}
                     </span>
                     <motion.img
-                      src={`https://api.dicebear.com/7.x/thumbs/svg?seed=${user.name}`}
+                      src={user.profileImage || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user.name)}`}
                       alt={user.name}
                       className="w-12 h-12 rounded-full border-2 border-blue-300"
                       whileHover={{ scale: 1.1, rotate: 5 }}

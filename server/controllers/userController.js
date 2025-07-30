@@ -109,8 +109,8 @@ exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
       .select('-password')
-      .populate('followers', 'name email')
-      .populate('following', 'name email');
+      .populate('followers', 'name email profileImage')
+      .populate('following', 'name email profileImage');
 
     res.json(user);
   } catch (err) {
@@ -123,7 +123,7 @@ exports.getProfile = async (req, res) => {
 exports.getTopUsers = async (req, res) => {
   try {
     const users = await User.find()
-      .select('name email points badge')
+      .select('name email points badge profileImage')
       .sort({ points: -1 })
       .limit(10);
     res.json(users);
@@ -141,21 +141,23 @@ exports.getUserProfile = async (req, res) => {
     const sessionsAsRecipient = await Session.find({
       recipient: user._id,
       'requesterFeedback.rating': { $exists: true },
-    }).populate('requester', 'name email');
+    }).populate('requester', 'name email profileImage');
 
     const sessionsAsRequester = await Session.find({
       requester: user._id,
       'recipientFeedback.rating': { $exists: true },
-    }).populate('recipient', 'name email');
+    }).populate('recipient', 'name email profileImage');
 
     const feedbacks = [
       ...sessionsAsRecipient.map((s) => ({
         from: s.requester.name,
+        profileImage: s.requester.profileImage,
         rating: s.requesterFeedback.rating,
         comment: s.requesterFeedback.comment,
       })),
       ...sessionsAsRequester.map((s) => ({
         from: s.recipient.name,
+        profileImage: s.recipient.profileImage,
         rating: s.recipientFeedback.rating,
         comment: s.recipientFeedback.comment,
       })),
@@ -286,7 +288,7 @@ exports.searchUsers = async (req, res) => {
 // @route GET /api/users/mutual-followers
 exports.getMutualFollowers = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate('following', 'name email');
+    const user = await User.findById(req.user._id).populate('following', 'name email profileImage');
 
     const mutuals = user.following.filter(f =>
       user.followers.includes(f._id)
