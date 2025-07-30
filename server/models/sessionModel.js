@@ -12,12 +12,13 @@ const sessionSchema = new mongoose.Schema({
   meetLink: { type: String },
   meetingId: { type: String },
   meetingPassword: { type: String },
-  joinTime: { type: String }, // Store join time (e.g., "20:01")
   pastRoom: {
     hostName: { type: String },
     participantName: { type: String },
-    joinTime: { type: String },
-    leaveTime: { type: String }
+    requesterJoinTime: { type: String },
+    requesterLeaveTime: { type: String },
+    recipientJoinTime: { type: String },
+    recipientLeaveTime: { type: String }
   },
   requesterFeedback: {
     rating: { type: Number, min: 1, max: 5 },

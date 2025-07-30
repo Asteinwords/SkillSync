@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import API from '../services/api';
-import { Calendar, Clock, Link as LinkIcon, Star, CheckCircle, Check } from 'lucide-react';
+import { Calendar, Clock, Link as LinkIcon, Star, CheckCircle, Check, Trash2, Send } from 'lucide-react';
 import Stars from '../assets/stars.svg';
 
 // Animation variants
@@ -11,18 +11,18 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.05,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.5,
+      duration: 0.3,
       ease: 'easeOut',
     },
   },
@@ -39,6 +39,235 @@ const formVariants = {
     },
   },
 };
+
+// Memoized session card component
+const SessionCard = memo(({ session, index, myId, handleJoinMeeting, handleAcceptSession, handleMarkDone, handleDeleteSession, canMarkDone }) => {
+  const role = session.requester?._id === myId ? 'requester' : 'recipient';
+  const userJoinTime = role === 'requester' ? session.pastRoom?.requesterJoinTime : session.pastRoom?.recipientJoinTime;
+  console.log(`[${new Date().toISOString()}] Rendering session:`, {
+    sessionId: session._id,
+    role,
+    status: session.status,
+    date: session.date,
+    time: session.time,
+    canMarkDone: canMarkDone(session),
+    userJoinTime,
+    pastRoom: session.pastRoom,
+    requester: session.requester,
+    recipient: session.recipient,
+    handleMarkDoneDefined: !!handleMarkDone // Log to confirm prop
+  });
+
+  // Skip rendering if data is missing
+  if (!session.requester || !session.recipient || !session.requester.name || !session.recipient.name) {
+    console.warn(`[${new Date().toISOString()}] Skipping session due to missing requester/recipient data:`, { sessionId: session._id, requester: session.requester, recipient: session.recipient });
+    return null;
+  }
+
+  // Defensive check for handleMarkDone
+  if (!handleMarkDone) {
+    console.error(`[${new Date().toISOString()}] handleMarkDone is not defined for session: ${session._id}`);
+  }
+
+  return (
+    <motion.div
+      key={session._id}
+      variants={itemVariants}
+      className={`flex flex-col py-4 px-6 rounded-xl mb-4 transition-all duration-300 shadow-md ${
+        index === 0
+          ? 'bg-gradient-to-r from-yellow-50 to-teal-50 border-l-4 border-teal-400'
+          : index === 1
+          ? 'bg-gradient-to-r from-blue-50 to-gray-50 border-l-4 border-blue-400'
+          : index === 2
+          ? 'bg-gradient-to-r from-purple-50 to-teal-50 border-l-4 border-purple-400'
+          : 'bg-white/90 hover:bg-teal-50/50 border-l-4 border-teal-200'
+      }`}
+      style={{ transform: 'translateZ(0)' }}
+    >
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-teal-800 flex items-center gap-2">
+          <span className="w-8 h-8 rounded-full bg-teal-200 flex items-center justify-center text-teal-600 font-bold">
+            {(role === 'requester' ? session.recipient.name[0] : session.requester.name[0]) || '?'}
+          </span>
+          With: {role === 'requester' ? session.recipient.name : session.requester.name}
+        </p>
+        <span className="text-sm bg-teal-100 text-teal-600 px-3 py-1 rounded-full font-medium">
+          {session.status}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap gap-4 sm:gap-6 mt-3 text-sm text-gray-600">
+        <p className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-teal-600" /> {session.date}
+        </p>
+        <p className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-teal-600" /> {session.time} - {session.endTime}
+        </p>
+      </div>
+
+      {session.meetLink && session.status !== 'done' && (
+        <button
+          onClick={() => handleJoinMeeting(session)}
+          className="mt-3 inline-flex items-center gap-2 text-teal-600 hover:text-teal-800 text-sm font-medium"
+        >
+          <LinkIcon className="w-4 h-4" />
+          Join Google Meet
+        </button>
+      )}
+
+      {session.meetingId && (
+        <p className="text-sm mt-2 flex items-center gap-2">
+          <span className="text-teal-600">🔑</span> Meeting ID: <span className="font-semibold">{session.meetingId}</span>
+        </p>
+      )}
+      {session.meetingPassword && (
+        <p className="text-sm mt-1 flex items-center gap-2">
+          <span className="text-teal-600">🔒</span> Password: <span className="font-semibold">{session.meetingPassword}</span>
+        </p>
+      )}
+
+      {userJoinTime && (
+        <p className="text-sm mt-2 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-teal-600" /> Joined at: <span className="font-semibold">{userJoinTime}</span>
+        </p>
+      )}
+
+      {role === 'recipient' && session.status === 'pending' && (
+        <motion.button
+          onClick={() => handleAcceptSession(session._id)}
+          className="text-teal-600 text-sm mt-3 hover:text-teal-800 transition flex items-center gap-2 font-medium"
+          whileHover={{ scale: 1.05 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Check className="w-4 h-4" />
+          Accept Session
+        </motion.button>
+      )}
+
+      {canMarkDone(session) && handleMarkDone && (
+        <motion.button
+          onClick={() => handleMarkDone(session._id)}
+          className="text-green-600 text-sm mt-3 hover:text-green-800 transition flex items-center gap-2 font-medium"
+          whileHover={{ scale: 1.05 }}
+          transition={{ duration: 0.3 }}
+        >
+          <CheckCircle className="w-4 h-4" />
+          Mark as Done
+        </motion.button>
+      )}
+
+      {role === 'requester' && session.status !== 'done' && (
+        <motion.button
+          onClick={() => handleDeleteSession(session._id)}
+          className="text-red-600 text-sm mt-3 hover:text-red-800 transition flex items-center gap-2 font-medium"
+          whileHover={{ scale: 1.05 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete Session
+        </motion.button>
+      )}
+    </motion.div>
+  );
+});
+
+// Memoized past room card component
+const PastRoomCard = memo(({ session, index, myId, handleFeedbackSubmit, feedbackForm, setFeedbackForm }) => {
+  const role = session.requester?._id === myId ? 'requester' : 'recipient';
+  const feedback = role === 'requester' ? session.requesterFeedback : session.recipientFeedback;
+  const userJoinTime = role === 'requester' ? session.pastRoom?.requesterJoinTime : session.pastRoom?.recipientJoinTime;
+  const userLeaveTime = role === 'requester' ? session.pastRoom?.requesterLeaveTime : session.pastRoom?.recipientLeaveTime;
+  console.log(`[${new Date().toISOString()}] Rendering past room:`, {
+    sessionId: session._id,
+    role,
+    hasFeedback: !!feedback,
+    pastRoom: session.pastRoom,
+    userJoinTime,
+    userLeaveTime,
+    hostName: session.pastRoom?.hostName,
+    participantName: session.pastRoom?.participantName
+  });
+
+  // Skip rendering if pastRoom or required fields are missing
+  if (!session.pastRoom || !session.pastRoom.hostName || !session.pastRoom.participantName) {
+    console.warn(`[${new Date().toISOString()}] Skipping past room due to missing data:`, { sessionId: session._id, pastRoom: session.pastRoom });
+    return null;
+  }
+
+  return (
+    <motion.div
+      key={session._id}
+      variants={itemVariants}
+      className="flex flex-col py-4 px-6 rounded-xl mb-4 bg-gradient-to-r from-teal-50 to-blue-50 shadow-md border-l-4 border-teal-400 transition-all duration-300"
+      style={{ transform: 'translateZ(0)' }}
+    >
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-teal-800 flex items-center gap-2">
+          <span className="w-8 h-8 rounded-full bg-teal-200 flex items-center justify-center text-teal-600 font-bold">
+            {session.pastRoom.hostName[0] || '?'}
+          </span>
+          Host: {session.pastRoom.hostName} | Participant: {session.pastRoom.participantName}
+        </p>
+      </div>
+      <p className="text-sm text-gray-600 mt-2">
+        Your Join: {userJoinTime || 'Not joined'} | Your Leave: {userLeaveTime || 'Not marked'}
+      </p>
+      {feedback && feedback.rating ? (
+        <p className="mt-4 text-teal-700 flex items-center gap-2">
+          <Star className="w-5 h-5 text-yellow-400 fill-current" />
+          You rated: {feedback.rating} - "{feedback.comment}"
+        </p>
+      ) : (
+        <form onSubmit={handleFeedbackSubmit} className="mt-4 space-y-3">
+          <motion.select
+            value={feedbackForm.sessionId === session._id ? feedbackForm.rating : ''}
+            onChange={(e) =>
+              setFeedbackForm({
+                sessionId: session._id,
+                role,
+                rating: e.target.value,
+                comment: feedbackForm.sessionId === session._id ? feedbackForm.comment : '',
+              })
+            }
+            className="border border-teal-200/50 bg-white/90 px-3 py-2 rounded-lg w-full focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
+            required
+            variants={itemVariants}
+          >
+            <option value="">Rate this session</option>
+            {[1, 2, 3, 4, 5].map((r) => (
+              <option key={r} value={r}>{r} Star{r > 1 ? 's' : ''}</option>
+            ))}
+          </motion.select>
+
+          <motion.textarea
+            placeholder="Write your feedback..."
+            className="border border-teal-200/50 bg-white/90 px-3 py-2 rounded-lg w-full resize-none h-20 focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
+            value={feedbackForm.sessionId === session._id ? feedbackForm.comment : ''}
+            onChange={(e) =>
+              setFeedbackForm((prev) => ({
+                ...prev,
+                sessionId: session._id,
+                role,
+                comment: e.target.value,
+              }))
+            }
+            variants={itemVariants}
+          />
+
+          <motion.button
+            type="submit"
+            className="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition flex items-center gap-2 shadow-sm"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Star className="w-5 h-5" />
+            Submit Feedback
+          </motion.button>
+        </form>
+      )}
+    </motion.div>
+  );
+});
 
 const ScheduleSession = () => {
   const [users, setUsers] = useState([]);
@@ -87,10 +316,10 @@ const ScheduleSession = () => {
       const sessionsRes = await API.get('/sessions', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(`[${new Date().toISOString()}] Fetched ${sessionsRes.data.length} sessions:`, sessionsRes.data.map(s => ({ id: s._id, status: s.status, date: s.date, time: s.time })));
+      console.log(`[${new Date().toISOString()}] Fetched ${sessionsRes.data.length} sessions:`, sessionsRes.data.map(s => ({ id: s._id, status: s.status, date: s.date, time: s.time, pastRoom: s.pastRoom, requester: s.requester, recipient: s.recipient })));
       setSessions(sessionsRes.data);
     } catch (err) {
-      console.error(`[${new Date().toISOString()}] Error fetching users/sessions:`, err.message, err.stack);
+      console.error(`[${new Date().toISOString()}] Error fetching users/sessions:`, err.response?.data || err.message, err.stack);
       toast.error('Failed to fetch data');
     }
   };
@@ -136,7 +365,7 @@ const ScheduleSession = () => {
       console.log(`[${new Date().toISOString()}] Form reset after submission`);
       fetchUsersAndSessions();
     } catch (err) {
-      console.error(`[${new Date().toISOString()}] Error scheduling session:`, err.message, err.stack);
+      console.error(`[${new Date().toISOString()}] Error scheduling session:`, err.response?.data || err.message, err.stack);
       toast.error('Failed to schedule session');
     }
   };
@@ -154,7 +383,7 @@ const ScheduleSession = () => {
       console.log(`[${new Date().toISOString()}] Feedback form reset`);
       fetchUsersAndSessions();
     } catch (err) {
-      console.error(`[${new Date().toISOString()}] Error submitting feedback:`, err.message, err.stack);
+      console.error(`[${new Date().toISOString()}] Error submitting feedback:`, err.response?.data || err.message, err.stack);
       toast.error('Failed to submit feedback');
     }
   };
@@ -175,22 +404,22 @@ const ScheduleSession = () => {
       toast.success('Session deleted successfully');
       fetchUsersAndSessions();
     } catch (err) {
-      console.error(`[${new Date().toISOString()}] Error deleting session:`, err.message, err.stack);
+      console.error(`[${new Date().toISOString()}] Error deleting session:`, err.response?.data || err.message, err.stack);
       toast.error('Failed to delete session');
     }
   };
 
   const handleAcceptSession = async (sessionId) => {
-    console.log(`[${new Date().toISOString()}] Attempting to accept session: ${sessionId}`);
+    console.log(`[${new Date().toISOString()}] Attempting to accept session: ${sessionId}, userId: ${myId}`);
     try {
-      const response = await API.put(`/sessions/${sessionId}/status`, { status: 'accepted' }, {
+      const response = await API.put(`/sessions/${sessionId}/status`, { status: 'accepted', userId: myId }, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log(`[${new Date().toISOString()}] Session accepted successfully:`, response.data);
       toast.success('Session accepted!');
-      fetchUsersAndSessions();
+      await fetchUsersAndSessions();
     } catch (err) {
-      console.error(`[${new Date().toISOString()}] Error accepting session: ${sessionId}`, err.message, err.stack);
+      console.error(`[${new Date().toISOString()}] Error accepting session: ${sessionId}`, err.response?.data || err.message, err.stack);
       toast.error('Failed to accept session');
     }
   };
@@ -230,30 +459,30 @@ const ScheduleSession = () => {
     }
 
     try {
-      const response = await API.put(`/sessions/${session._id}/join`, {}, {
+      const response = await API.put(`/sessions/${session._id}/join`, { userId: myId }, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log(`[${new Date().toISOString()}] Join time recorded for session: ${session._id}`, response.data);
       window.open(session.meetLink, '_blank', 'noopener,noreferrer');
       toast.success('Joined meeting');
-      fetchUsersAndSessions();
+      await fetchUsersAndSessions();
     } catch (err) {
-      console.error(`[${new Date().toISOString()}] Error recording join time for session: ${session._id}`, err.message, err.stack);
+      console.error(`[${new Date().toISOString()}] Error recording join time for session: ${session._id}`, err.response?.data || err.message, err.stack);
       toast.error('Failed to record join time');
     }
   };
 
   const handleMarkDone = async (sessionId) => {
-    console.log(`[${new Date().toISOString()}] Attempting to mark session as done: ${sessionId}`);
+    console.log(`[${new Date().toISOString()}] Attempting to mark session as done: ${sessionId}, userId: ${myId}`);
     try {
-      const response = await API.put(`/sessions/${sessionId}/status`, { status: 'done' }, {
+      const response = await API.put(`/sessions/${sessionId}/status`, { status: 'done', userId: myId }, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log(`[${new Date().toISOString()}] Session marked as done:`, response.data);
       toast.success('Session marked as done');
-      fetchUsersAndSessions();
+      await fetchUsersAndSessions();
     } catch (err) {
-      console.error(`[${new Date().toISOString()}] Error marking session as done: ${sessionId}`, err.message, err.stack);
+      console.error(`[${new Date().toISOString()}] Error marking session as done: ${sessionId}`, err.response?.data || err.message, err.stack);
       toast.error('Failed to mark session as done');
     }
   };
@@ -262,8 +491,7 @@ const ScheduleSession = () => {
     const sessionDateTime = new Date(`${session.date}T${session.time}:00+05:30`);
     const currentDate = currentTime.toISOString().split('T')[0];
     const isAfterScheduledTime = currentTime >= sessionDateTime;
-    const isSameDate = currentDate === session.date;
-    const isAccepted = session.status === 'accepted';
+    const isAcceptedOrPending = session.status === 'accepted' || session.status === 'pending';
 
     console.log(`[${new Date().toISOString()}] canMarkDone check for session:`, {
       sessionId: session._id,
@@ -273,49 +501,48 @@ const ScheduleSession = () => {
       currentDate,
       currentTime: currentTime.toISOString(),
       isAfterScheduledTime,
-      isSameDate,
-      isAccepted,
-      result: isAccepted && isSameDate && isAfterScheduledTime
+      isAcceptedOrPending,
+      result: isAcceptedOrPending && isAfterScheduledTime
     });
 
-    return isAccepted && isSameDate && isAfterScheduledTime;
+    return isAcceptedOrPending && isAfterScheduledTime;
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-blue-200 via-purple-100 to-pink-200 text-gray-900 px-6 py-16 font-sans overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-blue-200 via-purple-100 to-pink-200 text-gray-900 px-4 sm:px-6 py-16 font-sans overflow-hidden">
       {/* Stars Background */}
       <div className="absolute inset-0 w-full h-full -z-10">
         <img
           src={Stars}
           alt="Stars"
-          className="w-full h-full object-cover opacity-30 pointer-events-none animate-pulse"
+          className="w-full h-full object-cover opacity-20 pointer-events-none animate-pulse"
         />
       </div>
 
-      <div className="relative max-w-6xl mx-auto space-y-12 z-10">
+      <div className="relative max-w-7xl mx-auto space-y-12 z-10">
         {/* Schedule Form */}
         <motion.div
-          className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-blue-300/50"
+          className="bg-white/80 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-200/50"
           variants={formVariants}
           initial="hidden"
           animate="visible"
         >
           <motion.h2
-            className="text-3xl font-extrabold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-pink-500 mb-6 flex items-center justify-center gap-2"
+            className="text-2xl sm:text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-teal-500 mb-6 flex items-center justify-center gap-2"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.6 }}
           >
-            <Calendar className="w-6 h-6 text-yellow-400 animate-bounce" />
+            <Calendar className="w-6 h-6 text-teal-400 animate-bounce" />
             Schedule a Session
           </motion.h2>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <motion.select
               name="recipient"
               value={form.recipient}
               onChange={handleChange}
               required
-              className="col-span-1 md:col-span-2 border border-blue-300/50 bg-white/80 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="col-span-1 md:col-span-2 border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
             >
               <option value="">Select a user to learn from / teach</option>
@@ -332,7 +559,7 @@ const ScheduleSession = () => {
               value={form.date}
               onChange={handleChange}
               required
-              className="border border-blue-300/50 bg-white/80 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
             />
             <motion.input
@@ -341,7 +568,7 @@ const ScheduleSession = () => {
               value={form.time}
               onChange={handleChange}
               required
-              className="border border-blue-300/50 bg-white/80 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
             />
             <motion.input
@@ -350,7 +577,7 @@ const ScheduleSession = () => {
               value={form.endTime}
               onChange={handleChange}
               required
-              className="border border-blue-300/50 bg-white/80 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
             />
             <motion.input
@@ -360,7 +587,7 @@ const ScheduleSession = () => {
               value={form.duration}
               onChange={handleChange}
               required
-              className="border border-blue-300/50 bg-white/80 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
             />
             <motion.input
@@ -369,7 +596,7 @@ const ScheduleSession = () => {
               placeholder="Google Meet link (optional)"
               value={form.meetLink}
               onChange={handleChange}
-              className="border border-blue-300/50 bg-white/80 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
             />
             <motion.input
@@ -378,7 +605,7 @@ const ScheduleSession = () => {
               placeholder="Meeting ID (optional)"
               value={form.meetingId}
               onChange={handleChange}
-              className="border border-blue-300/50 bg-white/80 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
             />
             <motion.input
@@ -387,7 +614,7 @@ const ScheduleSession = () => {
               placeholder="Meeting Password (optional)"
               value={form.meetingPassword}
               onChange={handleChange}
-              className="border border-blue-300/50 bg-white/80 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
             />
             <motion.textarea
@@ -395,136 +622,75 @@ const ScheduleSession = () => {
               placeholder="Describe the session (topics, goals, etc.)"
               value={form.description}
               onChange={handleChange}
-              className="col-span-1 md:col-span-2 border border-blue-300/50 bg-white/80 px-4 py-3 rounded-lg shadow-sm resize-none h-28 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              className="col-span-1 md:col-span-2 border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm resize-none h-28 focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
             />
             <motion.button
               type="submit"
-              className="col-span-1 md:col-span-2 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
+              className="col-span-1 md:col-span-2 bg-gradient-to-r from-blue-600 to-teal-500 text-white py-3 rounded-lg hover:from-blue-700 hover:to-teal-600 transition flex items-center justify-center gap-2 shadow-md"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.3 }}
             >
-              <span> Send Request</span>
+              <Send className="w-5 h-5" />
+              Send Request
             </motion.button>
           </form>
         </motion.div>
 
         {/* Past Rooms Section */}
         <motion.div
-          className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-blue-300/50"
+          className="bg-white/80 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-200/50"
           variants={formVariants}
           initial="hidden"
           animate="visible"
         >
           <motion.h2
-            className="text-3xl font-extrabold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-pink-500 mb-6 flex items-center justify-center gap-2"
+            className="text-2xl sm:text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-teal-500 mb-6 flex items-center justify-center gap-2 sticky top-0 bg-white/90 z-10 py-2"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.6 }}
           >
-            <Calendar className="w-6 h-6 text-yellow-400 animate-bounce" />
+            <Calendar className="w-6 h-6 text-teal-400 animate-bounce" />
             Past Rooms
           </motion.h2>
-          <motion.div variants={containerVariants} initial="hidden" animate="visible">
-            {sessions.filter(s => s.status === 'done' && s.pastRoom).map((s, index) => {
-              const role = s.requester._id === myId ? 'requester' : 'recipient';
-              const feedback = role === 'requester' ? s.requesterFeedback : s.recipientFeedback;
-              console.log(`[${new Date().toISOString()}] Rendering past room:`, {
-                sessionId: s._id,
-                role,
-                hasFeedback: !!feedback,
-                pastRoom: s.pastRoom
-              });
-
-              return (
-                <motion.div
+          <motion.div
+            className="max-h-[400px] md:max-h-[500px] overflow-y-auto scroll-smooth will-change-scroll"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <AnimatePresence>
+              {sessions.filter(s => s.status === 'done' && s.pastRoom).map((s, index) => (
+                <PastRoomCard
                   key={s._id}
-                  variants={itemVariants}
-                  className="flex flex-col py-4 px-6 rounded-2xl mb-4 bg-gradient-to-r from-green-100 to-green-50 shadow-md border-l-4 border-green-400"
-                  whileHover={{ scale: 1.02, boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)' }}
-                >
-                  <p className="font-semibold text-blue-800">
-                    Host: {s.pastRoom.hostName} | Participant: {s.pastRoom.participantName}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    Join: {s.pastRoom.joinTime} | Leave: {s.pastRoom.leaveTime}
-                  </p>
-                  {feedback && feedback.rating ? (
-                    <p className="mt-4 text-green-700 flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400" />
-                      You rated: {feedback.rating} - "{feedback.comment}"
-                    </p>
-                  ) : (
-                    <form onSubmit={handleFeedbackSubmit} className="mt-4 space-y-3">
-                      <motion.select
-                        value={feedbackForm.sessionId === s._id ? feedbackForm.rating : ''}
-                        onChange={(e) =>
-                          setFeedbackForm({
-                            sessionId: s._id,
-                            role,
-                            rating: e.target.value,
-                            comment: feedbackForm.sessionId === s._id ? feedbackForm.comment : '',
-                          })
-                        }
-                        className="border border-blue-300/50 bg-white/80 px-3 py-2 rounded-lg w-full focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-                        required
-                        variants={itemVariants}
-                      >
-                        <option value="">Rate this session</option>
-                        {[1, 2, 3, 4, 5].map((r) => (
-                          <option key={r} value={r}>{r} Star{r > 1 ? 's' : ''}</option>
-                        ))}
-                      </motion.select>
-
-                      <motion.textarea
-                        placeholder="Write feedback"
-                        className="border border-blue-300/50 bg-white/80 px-3 py-2 rounded-lg w-full resize-none h-20 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-                        value={feedbackForm.sessionId === s._id ? feedbackForm.comment : ''}
-                        onChange={(e) =>
-                          setFeedbackForm((prev) => ({
-                            ...prev,
-                            sessionId: s._id,
-                            role,
-                            comment: e.target.value,
-                          }))
-                        }
-                        variants={itemVariants}
-                      />
-
-                      <motion.button
-                        type="submit"
-                        className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition flex items-center gap-2"
-                        whileHover={{ scale: 1.02 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <Star className="w-4 h-4" />
-                        Submit Feedback
-                      </motion.button>
-                    </form>
-                  )}
-                </motion.div>
-              );
-            })}
+                  session={s}
+                  index={index}
+                  myId={myId}
+                  handleFeedbackSubmit={handleFeedbackSubmit}
+                  feedbackForm={feedbackForm}
+                  setFeedbackForm={setFeedbackForm}
+                />
+              ))}
+            </AnimatePresence>
           </motion.div>
         </motion.div>
 
         {/* Scheduled Sessions List */}
         <motion.div
-          className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-blue-300/50"
+          className="bg-white/80 rounded-3xl shadow-xl p-6 sm:p-8 border border-blue-200/50"
           variants={formVariants}
           initial="hidden"
           animate="visible"
         >
           <motion.h2
-            className="text-3xl font-extrabold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-pink-500 mb-6 flex items-center justify-center gap-2"
+            className="text-2xl sm:text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-teal-500 mb-6 flex items-center justify-center gap-2 sticky top-0 bg-white/90 z-10 py-2"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.6 }}
           >
-            <Calendar className="w-6 h-6 text-yellow-400 animate-bounce" />
+            <Calendar className="w-6 h-6 text-teal-400 animate-bounce" />
             Your Sessions
           </motion.h2>
-
           {sessions.length === 0 ? (
             <motion.p
               className="text-center text-gray-600 text-lg"
@@ -533,114 +699,27 @@ const ScheduleSession = () => {
               No sessions scheduled yet.
             </motion.p>
           ) : (
-            <motion.div variants={containerVariants} initial="hidden" animate="visible">
-              {sessions.map((s, index) => {
-                const role = s.requester._id === myId ? 'requester' : 'recipient';
-                console.log(`[${new Date().toISOString()}] Rendering session:`, {
-                  sessionId: s._id,
-                  role,
-                  status: s.status,
-                  date: s.date,
-                  time: s.time,
-                  canMarkDone: canMarkDone(s)
-                });
-                return (
-                  <motion.div
+            <motion.div
+              className="max-h-[400px] md:max-h-[500px] overflow-y-auto scroll-smooth will-change-scroll"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <AnimatePresence>
+                {sessions.map((s, index) => (
+                  <SessionCard
                     key={s._id}
-                    variants={itemVariants}
-                    className={`flex flex-col py-4 px-6 rounded-2xl mb-4 transition-all duration-300 ${
-                      index === 0
-                        ? 'bg-gradient-to-r from-yellow-100 to-yellow-50 shadow-lg border-l-4 border-yellow-400'
-                        : index === 1
-                        ? 'bg-gradient-to-r from-gray-100 to-gray-50 shadow-md border-l-4 border-gray-400'
-                        : index === 2
-                        ? 'bg-gradient-to-r from-orange-100 to-orange-50 shadow-md border-l-4 border-orange-400'
-                        : 'bg-white/50 hover:bg-blue-50 hover:shadow-md border-l-4 border-blue-200'
-                    }`}
-                    whileHover={{ scale: 1.02, boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)' }}
-                  >
-                    <div className="flex justify-between items-center">
-                      <p className="font-semibold text-blue-800">
-                        With: {role === 'requester' ? s.recipient.name : s.requester.name}
-                      </p>
-                      <span className="text-sm bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full">
-                        {s.status}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-6 mt-3 text-sm text-gray-700">
-                      <p className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4 text-blue-600" /> {s.date}
-                      </p>
-                      <p className="flex items-center gap-1">
-                        <Clock className="w-4 h-4 text-blue-600" /> {s.time} - {s.endTime}
-                      </p>
-                    </div>
-
-                    {s.meetLink && s.status !== 'done' && (
-                      <button
-                        onClick={() => handleJoinMeeting(s)}
-                        className="mt-3 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        <LinkIcon className="w-4 h-4" />
-                        Join Google Meet
-                      </button>
-                    )}
-
-                    {s.meetingId && (
-                      <p className="text-sm mt-2">
-                        🔑 Meeting ID: <span className="font-semibold">{s.meetingId}</span>
-                      </p>
-                    )}
-                    {s.meetingPassword && (
-                      <p className="text-sm">
-                        🔒 Password: <span className="font-semibold">{s.meetingPassword}</span>
-                      </p>
-                    )}
-
-                    {s.joinTime && (
-                      <p className="text-sm mt-2">
-                        Joined at: <span className="font-semibold">{s.joinTime}</span>
-                      </p>
-                    )}
-
-                    {role === 'recipient' && s.status === 'pending' && (
-                      <motion.button
-                        onClick={() => handleAcceptSession(s._id)}
-                        className="text-blue-600 text-sm mt-3 hover:text-blue-800 transition flex items-center gap-1"
-                        whileHover={{ scale: 1.05 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <Check className="w-4 h-4" />
-                        Accept Session
-                      </motion.button>
-                    )}
-
-                    {canMarkDone(s) && (
-                      <motion.button
-                        onClick={() => handleMarkDone(s._id)}
-                        className="text-green-600 text-sm mt-3 hover:text-green-800 transition flex items-center gap-1"
-                        whileHover={{ scale: 1.05 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Mark as Done
-                      </motion.button>
-                    )}
-
-                    {role === 'requester' && s.status !== 'done' && (
-                      <motion.button
-                        onClick={() => handleDeleteSession(s._id)}
-                        className="text-red-600 text-sm mt-3 hover:text-red-800 transition"
-                        whileHover={{ scale: 1.05 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        🗑️ Delete this session
-                      </motion.button>
-                    )}
-                  </motion.div>
-                );
-              })}
+                    session={s}
+                    index={index}
+                    myId={myId}
+                    handleJoinMeeting={handleJoinMeeting}
+                    handleAcceptSession={handleAcceptSession}
+                    handleMarkDone={handleMarkDone}
+                    handleDeleteSession={handleDeleteSession}
+                    canMarkDone={canMarkDone}
+                  />
+                ))}
+              </AnimatePresence>
             </motion.div>
           )}
         </motion.div>
