@@ -1,56 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell } from 'lucide-react';
 import API from '../services/api';
+import socket from '../services/socket';
 import Stars from '../assets/stars.svg';
 
-// Animation variants for Framer Motion
 const navVariants = {
   hidden: { opacity: 0, y: -20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: 'easeOut',
-    },
-  },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
 };
 
 const linkVariants = {
   hidden: { opacity: 0, x: -10 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      duration: 0.4,
-      ease: 'easeOut',
-    },
-  },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
+
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.3,
-      ease: 'easeOut',
-    },
-  },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
 };
+
 const dropdownVariants = {
   hidden: { opacity: 0, scale: 0.95, y: -10 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: {
-      duration: 0.3,
-      ease: 'easeOut',
-    },
-  },
+  visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
 };
 
 const Navbar = () => {
@@ -58,31 +31,101 @@ const Navbar = () => {
   const location = useLocation();
   const [authenticated, setAuthenticated] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [messageNotifications, setMessageNotifications] = useState({});
   const [showDropdown, setShowDropdown] = useState(false);
 
   const token = localStorage.getItem('token');
+  const userId = localStorage.getItem('userId');
 
   useEffect(() => {
-    setAuthenticated(!!token);
-  }, [location]);
+    setAuthenticated(!!token && !!userId);
+  }, [location, token, userId]);
 
   useEffect(() => {
+    if (!userId || !token) {
+      console.error('⚠️ Missing userId or token in localStorage');
+      return;
+    }
+
+    socket.emit('registerUser', { userId });
+
+    socket.on('connect', () => {
+      console.log(`✅ Socket connected for user ${userId}`);
+      socket.emit('registerUser', { userId });
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('❌ Socket connection error:', err.message);
+    });
+
+    socket.on('error', (message) => {
+      console.error('❌ Socket server error:', message);
+    });
+
     const fetchNotifications = async () => {
-      if (!token) return;
       try {
         const { data } = await API.get('/users/follow-requests', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setNotifications(data);
+        setNotifications(data || []);
       } catch (err) {
-        console.error('Error loading follow requests', err);
+        console.error('❌ Error loading follow requests:', err.message);
       }
     };
     fetchNotifications();
-  }, [token]);
+
+    return () => {
+      socket.off('connect');
+      socket.off('connect_error');
+      socket.off('error');
+    };
+  }, [token, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    socket.on('newMessageNotification', (notification) => {
+      if (notification.to === userId) {
+        console.log(`✅ Received notification from ${notification.from} for ${userId}`);
+        setMessageNotifications((prev) => {
+          const existing = prev[notification.from] || {
+            messages: [],
+            senderName: notification.senderName,
+            from: notification.from,
+          };
+          const newMessage = {
+            id: `${notification.from}-${notification.time}`,
+            message: notification.message,
+          };
+          return {
+            ...prev,
+            [notification.from]: {
+              ...existing,
+              messages: [...existing.messages, newMessage],
+            },
+          };
+        });
+      }
+    });
+
+    socket.on('messagesRead', ({ userId: senderId }) => {
+      console.log(`✅ Clearing notifications for sender ${senderId}`);
+      setMessageNotifications((prev) => {
+        const newNotifications = { ...prev };
+        delete newNotifications[senderId];
+        return newNotifications;
+      });
+    });
+
+    return () => {
+      socket.off('newMessageNotification');
+      socket.off('messagesRead');
+    };
+  }, [userId]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('userId');
     setAuthenticated(false);
     navigate('/');
   };
@@ -96,13 +139,29 @@ const Navbar = () => {
       );
       setNotifications((prev) => prev.filter((n) => n._id !== senderId));
     } catch (err) {
-      alert('Failed to accept follow request');
+      console.error('❌ Failed to accept follow request:', err.message);
     }
   };
 
+  const handleMessageClick = (from, senderName) => {
+    navigate('/chat', {
+      state: { receiverId: from, receiverName: senderName },
+    });
+    setMessageNotifications((prev) => {
+      const newNotifications = { ...prev };
+      delete newNotifications[from];
+      return newNotifications;
+    });
+    setShowDropdown(false);
+  };
+
+  const notificationCount = notifications.length + Object.values(messageNotifications).reduce(
+    (sum, n) => sum + n.messages.length,
+    0
+  );
+
   return (
     <header className="relative z-20 shadow-lg">
-      {/* 🌌 Stars Background */}
       <div className="absolute inset-0 h-full w-full -z-10">
         <img
           src={Stars}
@@ -111,7 +170,6 @@ const Navbar = () => {
         />
       </div>
 
-      {/* Navbar */}
       <motion.nav
         className="bg-gradient-to-r from-blue-900 via-purple-900 to-indigo-900 text-white font-sans relative"
         variants={navVariants}
@@ -119,7 +177,6 @@ const Navbar = () => {
         animate="visible"
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          {/* Logo */}
           <Link
             to={authenticated ? '/dashboard' : '/'}
             className="text-2xl font-extrabold font-display bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-400 flex items-center gap-2"
@@ -132,7 +189,6 @@ const Navbar = () => {
             </motion.span>
           </Link>
 
-          {/* Navigation Links */}
           <motion.div
             className="hidden md:flex space-x-8 items-center text-sm"
             variants={navVariants}
@@ -199,7 +255,6 @@ const Navbar = () => {
             )}
           </motion.div>
 
-          {/* Notification Bell */}
           {authenticated && (
             <div className="relative">
               <motion.button
@@ -209,9 +264,9 @@ const Navbar = () => {
                 transition={{ duration: 0.3 }}
               >
                 <Bell className="w-5 h-5" />
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                    {notifications.length}
+                {notificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
+                    {notificationCount}
                   </span>
                 )}
               </motion.button>
@@ -225,29 +280,46 @@ const Navbar = () => {
                     animate="visible"
                     exit="hidden"
                   >
-                    <h4 className="font-bold text-blue-600 mb-3">Follow Requests</h4>
-                    {notifications.length === 0 ? (
-                      <p className="text-gray-600 text-sm">No new requests</p>
+                    <h4 className="font-bold text-blue-600 mb-3">Notifications</h4>
+                    {notificationCount === 0 ? (
+                      <p className="text-gray-600 text-sm">No new notifications</p>
                     ) : (
-                      notifications.map((user) => (
-                        <motion.div
-                          key={user._id}
-                          className="flex justify-between items-center mb-4 last:mb-0"
-                          variants={itemVariants}
-                        >
-                          <div className="truncate">
-                            <p className="font-semibold text-blue-700">{user.name}</p>
-                            <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                          </div>
-                          <motion.button
-                            onClick={() => handleAccept(user._id)}
-                            className="bg-emerald-500 text-white px-4 py-1 rounded-full text-sm hover:bg-emerald-600 transition-colors"
-                            whileHover={{ scale: 1.05 }}
+                      <>
+                        {notifications.map((user) => (
+                          <motion.div
+                            key={user._id}
+                            className="flex justify-between items-center mb-4 last:mb-0"
+                            variants={itemVariants}
                           >
-                            Accept
-                          </motion.button>
-                        </motion.div>
-                      ))
+                            <div className="truncate">
+                              <p className="font-semibold text-blue-700">{user.name}</p>
+                              <p className="text-sm text-gray-500 truncate">Follow request</p>
+                            </div>
+                            <motion.button
+                              onClick={() => handleAccept(user._id)}
+                              className="bg-emerald-500 text-white px-4 py-1 rounded-full text-sm hover:bg-emerald-600 transition-colors"
+                              whileHover={{ scale: 1.05 }}
+                            >
+                              Accept
+                            </motion.button>
+                          </motion.div>
+                        ))}
+                        {Object.values(messageNotifications).map((notification) => (
+                          <motion.div
+                            key={notification.from}
+                            className="flex justify-between items-center mb-4 last:mb-0 cursor-pointer"
+                            variants={itemVariants}
+                            onClick={() => handleMessageClick(notification.from, notification.senderName)}
+                          >
+                            <div className="truncate">
+                              <p className="font-semibold text-blue-700">{notification.senderName}</p>
+                              <p className="text-sm text-gray-500 truncate">
+                                {notification.messages.map((m) => m.message).join(' and ')}
+                              </p>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </>
                     )}
                   </motion.div>
                 )}

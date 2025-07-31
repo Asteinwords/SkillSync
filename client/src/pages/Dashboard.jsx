@@ -13,7 +13,9 @@ const animeAvatars = [
   'https://wallpapercave.com/uwp/uwp4772764.png', // Naruto Uzumaki (Naruto)
   'https://wallpapercave.com/uwp/uwp4658640.jpeg', // Goku (Dragon Ball)
   'https://wallpapercave.com/wp/wp3228031.jpg', // Ichigo Kurosaki (Bleach)
-  'https://wallpapercave.com/wp/rGputFU.jpg', // Light Yagami (Death Note)
+  'https://wallpapercave.com/wp/rGputFU.jpg',
+  'https://wallpapercave.com/wp/wp13968902.jpg',
+  'https://static1.srcdn.com/wordpress/wp-content/uploads/2021/02/He-Grew-Up-In-Squalor-And-Poverty-Cropped.jpg', // Light Yagami (Death Note)
 ];
 
 const badgeStyles = {

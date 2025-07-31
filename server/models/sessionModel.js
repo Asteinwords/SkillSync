@@ -10,6 +10,7 @@ const sessionSchema = new mongoose.Schema({
   description: { type: String },
   status: { type: String, enum: ['pending', 'accepted', 'rejected', 'done'], default: 'pending' },
   meetLink: { type: String },
+  lastMessage: { type: String, default: '' },
   meetingId: { type: String },
   meetingPassword: { type: String },
   pastRoom: {

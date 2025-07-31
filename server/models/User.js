@@ -13,9 +13,11 @@ const userSchema = new mongoose.Schema({
   points: { type: Number, default: 0 },
   streak: { type: Number, default: 0 }, // Current streak count
   lastVisited: { type: Date }, // Last date the user visited
+  visits:{  type: Number,default:0},
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  
   profileImage: { type: String, default: '' },
   aboutMe: { type: String },
   education: [
@@ -50,6 +52,10 @@ const userSchema = new mongoose.Schema({
       }
     }
   ],
+  newsletterSubscribed: {
+      type: Boolean,
+      default: false,
+    },
 }, { timestamps: true });
 
 // Hash password before saving

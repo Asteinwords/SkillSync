@@ -12,11 +12,14 @@ import { io } from 'socket.io-client';
 const user = JSON.parse(localStorage.getItem('user')); // or use currentUser from auth context
 
 const socket = io('http://localhost:5000', {
-  transports: ['websocket'],
+  transports: ['websocket','polling'],
   withCredentials: true,
   query: {
     userId: user?._id || '',
   },
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
 });
 
 export default socket;

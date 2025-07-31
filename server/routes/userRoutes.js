@@ -15,6 +15,9 @@ const {
   updateProfileImage,
   updateProfileInfo,
   updateStreak,
+  updateVisit,
+  subscribeNewsletter,
+  getSkillsExchanged,
 } = require('../controllers/userController');
 const { getMutualFollowers } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
@@ -23,6 +26,7 @@ const User = require('../models/User');
 // Public Routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/newsletter', subscribeNewsletter);
 // routes/userRoutes.js
 router.put('/profile-info', protect, updateProfileInfo);
 
@@ -39,10 +43,9 @@ router.get('/me', protect, getProfile);
 router.get('/:id/profile', getUserProfile);
 router.post('/follow', protect, sendFollowRequest);
 router.post('/accept-follow', protect, acceptFollowRequest);
-// routes/userRoutes.js
 router.put('/profile-image', protect, updateProfileImage);
 router.post('/update-streak', protect, updateStreak);
-// 🔄 Get pending follow requests for the logged-in user
+router.post('/update-visit/:id', protect, updateVisit);
 router.get('/follow-requests', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).populate('followRequests', 'name email');
@@ -92,7 +95,7 @@ router.delete('/unfollow/:id', protect, async (req, res) => {
 });
 
 router.get('/search', protect, searchUsers);
-
+router.get('/skills-exchanged', protect, getSkillsExchanged);
 router.get('/mutual-followers', protect, getMutualFollowers);
 
 
