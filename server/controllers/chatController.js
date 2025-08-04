@@ -1,9 +1,11 @@
 const Message = require('../models/Message');
+const User = require('../models/User');
 
 exports.getHistory = async (req, res) => {
   try {
     const msgs = await Message.find({ roomId: req.params.roomId })
       .sort({ time: 1 });
+    console.log(`✅ Fetched ${msgs.length} messages for room ${req.params.roomId}`);
     res.json(msgs);
   } catch (err) {
     console.error('❌ Error fetching chat history:', err.message);
@@ -18,6 +20,7 @@ exports.postMessage = async (req, res) => {
       return res.status(400).json({ error: 'Invalid message data' });
     }
     const saved = await Message.create({ roomId, from, to, message, time, unreadBy: [to] });
+    console.log(`✅ Saved message in room ${roomId} from ${from} to ${to}`);
     res.json(saved);
   } catch (err) {
     console.error('❌ Error saving message:', err.message);
@@ -36,6 +39,7 @@ exports.getUnreadCount = async (req, res) => {
       unreadCounts[otherUser] = (unreadCounts[otherUser] || 0) + 1;
     });
 
+    console.log(`✅ Unread counts for user ${userId}:`, unreadCounts);
     res.json({ unreadCounts, total: messages.length });
   } catch (err) {
     console.error('❌ Error fetching unread counts:', err.message);
@@ -49,10 +53,11 @@ exports.markMessagesRead = async (req, res) => {
     if (!roomId || !userId) {
       return res.status(400).json({ error: 'Room ID and user ID required' });
     }
-    await Message.updateMany(
+    const updated = await Message.updateMany(
       { roomId, unreadBy: userId },
       { $pull: { unreadBy: userId } }
     );
+    console.log(`✅ Marked ${updated.nModified} messages as read in room ${roomId} for ${userId}`);
     res.json({ message: 'Messages marked as read' });
   } catch (err) {
     console.error('❌ Error marking messages as read:', err.message);
@@ -96,11 +101,11 @@ exports.deleteForEveryone = async (req, res) => {
       return res.status(400).json({ error: 'Invalid message IDs or user ID' });
     }
 
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const messages = await Message.find({
       _id: { $in: messageIds },
-      from: userId, // Only sender can delete
-      time: { $gte: oneDayAgo }, // Messages must be within 24 hours
+      from: userId,
+      time: { $gte: oneDayAgo },
     });
 
     if (messages.length !== messageIds.length) {
@@ -120,15 +125,16 @@ exports.deleteForEveryone = async (req, res) => {
 exports.getRecentChats = async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log(`Fetching recent chats for user: ${userId}`);
+    console.log(`🔍 Fetching recent chats for user: ${userId}, token: ${req.headers.authorization}`);
 
-    // Validate user existence
+    // Validate user
     const user = await User.findById(userId);
     if (!user) {
-      console.error('User not found:', userId);
+      console.error(`❌ User not found: ${userId}`);
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Fetch messages
     const messages = await Message.find({
       $or: [{ from: userId }, { to: userId }],
       deletedBy: { $ne: userId },
@@ -138,26 +144,42 @@ exports.getRecentChats = async (req, res) => {
       .populate('to', 'name profileImage')
       .limit(10);
 
-    console.log(`Found ${messages.length} messages for user ${userId}`);
+    console.log(`✅ Found ${messages.length} messages for user ${userId}:`, 
+      messages.map(m => ({
+        _id: m._id,
+        roomId: m.roomId,
+        from: m.from?._id,
+        to: m.to?._id,
+        fromName: m.from?.name,
+        toName: m.to?.name,
+        message: m.message,
+        time: m.time
+      })));
 
     if (!messages.length) {
-      console.log('No messages found for user');
+      console.log('⚠️ No messages found, returning empty array');
       return res.json([]);
     }
 
+    // Group by other user
     const chatMap = new Map();
     messages.forEach((msg) => {
       const otherUserId = msg.from.toString() === userId ? msg.to._id.toString() : msg.from._id.toString();
+      const otherUser = msg.from.toString() === userId ? msg.to : msg.from;
+      if (!otherUser || !otherUser._id) {
+        console.warn(`⚠️ Skipping message ${msg._id} with missing user data`);
+        return;
+      }
       if (!chatMap.has(otherUserId)) {
-        const otherUser = msg.from.toString() === userId ? msg.to : msg.from;
         chatMap.set(otherUserId, {
           _id: otherUserId,
           user: {
             name: otherUser.name || 'Unknown',
             profileImage: otherUser.profileImage || null,
           },
-          lastMessage: msg.message || '',
+          lastMessage: msg.message || 'No message content',
           time: msg.time,
+          direction: msg.from.toString() === userId ? 'sent' : 'received',
         });
       }
     });
@@ -166,10 +188,12 @@ exports.getRecentChats = async (req, res) => {
       .sort((a, b) => new Date(b.time) - new Date(a.time))
       .slice(0, 3);
 
-    console.log('Recent chats fetched:', JSON.stringify(recentChats, null, 2));
+    console.log(`✅ Returning ${recentChats.length} recent chats:`, JSON.stringify(recentChats, null, 2));
     res.json(recentChats);
   } catch (err) {
     console.error('❌ Error fetching recent chats:', err.message, err.stack);
     res.status(500).json({ message: 'Error fetching recent chats', error: err.message });
   }
 };
+
+// ... (other endpoints unchanged)

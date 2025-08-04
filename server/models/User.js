@@ -52,10 +52,7 @@ const userSchema = new mongoose.Schema({
       }
     }
   ],
-  newsletterSubscribed: {
-      type: Boolean,
-      default: false,
-    },
+ 
 }, { timestamps: true });
 
 // Hash password before saving

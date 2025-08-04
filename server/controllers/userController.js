@@ -49,6 +49,7 @@ exports.loginUser = async (req, res) => {
   }
 };
 
+
 // @route PUT /api/users/skills
 exports.updateSkills = async (req, res) => {
   const userId = req.user._id;
@@ -394,78 +395,5 @@ exports.updateStreak = async (req, res) => {
   } catch (err) {
     console.error('❌ Update Streak Error:', err);
     res.status(500).json({ message: 'Failed to update streak' });
-  }
-};
-// @route POST /api/users/newsletter
-exports.subscribeNewsletter = async (req, res) => {
-  const { email } = req.body;
-  try {
-    if (!email || !/.+\@.+\..+/.test(email)) {
-      return res.status(400).json({ message: 'Invalid email' });
-    }
-
-    // Check if SendGrid is configured
-    if (!process.env.SENDGRID_API_KEY) {
-      console.error('❌ SendGrid API key is missing');
-      return res.status(500).json({ message: 'Email service not configured' });
-    }
-
-    // Check if email is already subscribed
-    const existingUser = await User.findOne({ email });
-    if (existingUser && existingUser.newsletterSubscribed) {
-      return res.status(400).json({ message: 'Email already subscribed' });
-    }
-
-    // Update user if logged in
-    if (req.user) {
-      await User.findByIdAndUpdate(req.user._id, { newsletterSubscribed: true });
-    }
-
-    // Send confirmation email via SendGrid
-    const msg = {
-      to: email,
-      from: 'no-reply@skillsync.com', // Replace with your verified sender
-      subject: 'Welcome to SkillSync Newsletter!',
-      text: 'Thank you for subscribing to the SkillSync newsletter. Stay tuned for updates!',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Welcome to SkillSync!</h2>
-          <p>Thank you for subscribing to our newsletter. You'll receive updates on new features, skill exchange tips, and more!</p>
-          <p><a href="https://skillsync.com/unsubscribe?email=${encodeURIComponent(email)}">Unsubscribe</a></p>
-        </div>
-      `,
-    };
-
-    await sgMail.send(msg);
-    console.log(`✅ Newsletter subscription email sent to: ${email}`);
-
-    res.json({ message: 'Subscribed successfully' });
-  } catch (err) {
-    console.error('❌ Newsletter Subscription Error:', err.message, err.stack);
-    res.status(500).json({ message: 'Failed to subscribe', error: err.message });
-  }
-};
-
-// @route GET /api/users/skills-exchanged
-exports.getSkillsExchanged = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const sessionsAsRecipient = await Session.find({
-      recipient: userId,
-      status: 'completed',
-      'requesterFeedback.rating': { $exists: true },
-    });
-
-    const sessionsAsRequester = await Session.find({
-      requester: userId,
-      status: 'completed',
-      'recipientFeedback.rating': { $exists: true },
-    });
-
-    const skillsExchanged = sessionsAsRecipient.length + sessionsAsRequester.length;
-    res.json({ skillsExchanged });
-  } catch (err) {
-    console.error('❌ Error fetching skills exchanged:', err.message);
-    res.status(500).json({ message: 'Failed to fetch skills exchanged' });
   }
 };

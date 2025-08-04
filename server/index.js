@@ -8,13 +8,15 @@ const { Server } = require('socket.io');
 const Room = require('./models/Room');
 const User = require('./models/User');
 const Message = require('./models/Message');
-
+const postRoutes = require('./routes/postRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const userRoutes = require('./routes/userRoutes');
 const roomRoutes = require('./routes/roomRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const eventRoutes = require('./routes/eventRoutes');
 const setupChatSocket = require('./chatSocket');
-require('./scheduler');
+require('./scheduler'); // node-schedule for autoMarkDone
+const { startScheduler } = require('./schedulerr'); // node-cron for updateTrendingSkills
 dotenv.config();
 
 const app = express();
@@ -81,7 +83,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/chat', chatRoutes);
-
+app.use('/api/post', postRoutes);
+app.use('/api/events', eventRoutes);
 app.post('/api/rooms/leave', async (req, res) => {
   try {
     let body = req.body;
@@ -123,6 +126,7 @@ mongoose
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      startScheduler(); // Start the node-cron scheduler for trending skills
     });
   })
   .catch((err) => {

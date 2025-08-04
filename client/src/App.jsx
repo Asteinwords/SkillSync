@@ -195,6 +195,8 @@ import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import Heatmap from "./components/Heatmap";
 import MainHome from "./pages/MainHome";
+import CommunityFeed from "./pages/CommunityFeed";
+import Bookmarks from "./pages/Bookmarks";
 
 function App() {
   return (
@@ -221,6 +223,8 @@ function App() {
           <Route path="/chatt" element={<PrivateRoute><Chat /></PrivateRoute>} />
           <Route path="/home" element={<PrivateRoute><MainHome /></PrivateRoute>} />
           <Route path="/forgot-password" element={<PrivateRoute><ForgotPassword /></PrivateRoute>} />
+          <Route path="/community" element={<PrivateRoute><CommunityFeed /></PrivateRoute>} />
+          <Route path="/bookmarks" element={<PrivateRoute><Bookmarks /></PrivateRoute>} />
           <Route path="/reset_password/:id/:token" element={<PrivateRoute><ResetPassword /></PrivateRoute>} />
 
           {/* Catch-all 404 */}

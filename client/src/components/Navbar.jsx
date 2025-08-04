@@ -219,6 +219,11 @@ const Navbar = () => {
                   </Link>
                 </motion.div>
                 <motion.div variants={linkVariants}>
+                  <Link to="/community" className="hover:text-blue-300 transition-colors">
+                    Community
+                  </Link>
+                </motion.div>
+                <motion.div variants={linkVariants}>
                   <Link to="/leaderboard" className="hover:text-blue-300 transition-colors">
                     Leaderboard
                   </Link>
