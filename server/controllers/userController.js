@@ -355,7 +355,7 @@ exports.updateProfileInfo = async (req, res) => {
 // @route POST /api/users/update-streak
 exports.updateStreak = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id); // Only update for logged-in user
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const today = new Date();

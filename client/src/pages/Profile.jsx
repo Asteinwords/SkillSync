@@ -132,60 +132,68 @@ const Profile = () => {
   const token = localStorage.getItem('token');
   const loggedInUserId = localStorage.getItem('userId');
 
-  useEffect(() => {
-    const fetchProfileAndStreak = async () => {
-      try {
-        const { data: profileData } = await API.get(`/users/${id}/profile`);
-        console.log('API Response for user', id, ':', profileData);
-        setProfile(profileData);
+useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const { data: profileData } = await API.get(`/users/${id}/profile`);
+      console.log('API Response for user', id, ':', profileData);
+      setProfile(profileData);
 
-        const streak = profileData.streak || 0;
-        const points = profileData.points || 0;
-        const visits = profileData.visits || 0;
-        console.log('Streak for user', id, ':', streak, 'Points:', points, 'Visits:', visits);
+      const streak = profileData.streak || 0;
+      const points = profileData.points || 0;
+      const visits = profileData.visits || 0;
+      console.log('Streak for user', id, ':', streak, 'Points:', points, 'Visits:', visits);
 
-        const visitHistory = [];
-        const today = moment().startOf('day');
-        for (let i = 0; i < streak; i++) {
-          visitHistory.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
-        }
-        setStreakData({
-          totalDays: streak,
-          maxStreak: Math.max(streak, streak || 0),
-          currentStreak: streak,
-          visitHistory,
-        });
-
-        // Increment visits only if viewing another user's profile
-        if (token && loggedInUserId && loggedInUserId !== id) {
-          await API.post(`/users/update-visit/${id}`, {}, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        }
-      } catch (err) {
-        console.error('Error fetching profile for user', id, ':', err);
-        alert('Failed to load profile');
+      const visitHistory = [];
+      const today = moment().startOf('day');
+      for (let i = 0; i < streak; i++) {
+        visitHistory.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
       }
+      setStreakData({
+        totalDays: streak,
+        maxStreak: Math.max(streak, streak || 0),
+        currentStreak: streak,
+        visitHistory,
+      });
+    } catch (err) {
+      console.error('Error fetching profile for user', id, ':', err);
+      alert('Failed to load profile');
+    }
+  };
 
-      const fetchFollowStatus = async () => {
-        if (token) {
-          try {
-            const { data } = await API.get('/users/follow-status', {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            console.log('Follow Status Response:', data);
-            setFollows(data.follows);
-            setMutuals(data.mutuals);
-          } catch (err) {
-            console.error('Error fetching follow status:', err);
-            alert('Failed to fetch follow status');
-          }
-        }
-      };
-      fetchFollowStatus();
-    };
-    fetchProfileAndStreak();
-  }, [id, token, loggedInUserId]);
+  const updateVisit = async () => {
+    if (token && loggedInUserId && loggedInUserId !== id) {
+      try {
+        await API.post(`/users/update-visit/${id}`, {}, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Visit updated for user', id);
+      } catch (err) {
+        console.error('Error updating visit for user', id, ':', err);
+      }
+    }
+  };
+
+  const fetchFollowStatus = async () => {
+    if (token) {
+      try {
+        const { data } = await API.get('/users/follow-status', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Follow Status Response:', data);
+        setFollows(data.follows);
+        setMutuals(data.mutuals);
+      } catch (err) {
+        console.error('Error fetching follow status:', err);
+        alert('Failed to fetch follow status');
+      }
+    }
+  };
+
+  fetchProfile();
+  updateVisit();
+  fetchFollowStatus();
+}, [id, token, loggedInUserId]);
 
   const sendFollowRequest = async () => {
     if (!token) {

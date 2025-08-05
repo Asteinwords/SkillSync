@@ -304,14 +304,23 @@ const ScheduleSession = () => {
   }, []);
 
   const fetchUsersAndSessions = async () => {
-    console.log(`[${new Date().toISOString()}] Fetching users and sessions for userId: ${myId}`);
+    console.log(`[${new Date().toISOString()}] Fetching users, sessions, and profile for userId: ${myId}`);
     try {
+      // Fetch current user's profile to get following and followers
+      const profileRes = await API.get('/users/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const followingIds = profileRes.data.following.map(user => user._id);
+      const followerIds = profileRes.data.followers.map(user => user._id);
+      const mutualFollowerIds = followingIds.filter(id => followerIds.includes(id));
+
+      // Fetch all users and filter by mutual followers
       const usersRes = await API.get('/users/all', {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log(`[${new Date().toISOString()}] Fetched ${usersRes.data.length} users:`, usersRes.data.map(u => ({ id: u._id, name: u.name, email: u.email })));
-      setUsers(usersRes.data.filter(u => u._id !== myId));
-      console.log(`[${new Date().toISOString()}] Filtered users (excluding self): ${usersRes.data.filter(u => u._id !== myId).length}`);
+      setUsers(usersRes.data.filter(u => mutualFollowerIds.includes(u._id) && u._id !== myId));
+      console.log(`[${new Date().toISOString()}] Filtered users (mutual followers): ${usersRes.data.filter(u => mutualFollowerIds.includes(u._id) && u._id !== myId).length}`);
 
       const sessionsRes = await API.get('/sessions', {
         headers: { Authorization: `Bearer ${token}` },

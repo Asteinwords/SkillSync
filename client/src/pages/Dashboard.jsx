@@ -150,42 +150,42 @@ const Dashboard = () => {
 
   const token = localStorage.getItem('token');
 
-  useEffect(() => {
-    const fetchProfileAndStreak = async () => {
-      try {
-        const { data: profileData } = await API.get('/users/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log('Profile Data:', profileData); // Debug followers/following data
-        setUser(profileData);
-        if (profileData.skillsOffered?.length) setSkillsOffered(profileData.skillsOffered);
-        if (profileData.skillsWanted?.length) setSkillsWanted(profileData.skillsWanted);
-        setAboutMe(profileData.aboutMe || '');
-        if (profileData.education?.length) setEducation(profileData.education);
+useEffect(() => {
+  const fetchProfileAndStreak = async () => {
+    try {
+      const { data: profileData } = await API.get('/users/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log('Profile Data:', profileData);
+      setUser(profileData);
+      if (profileData.skillsOffered?.length) setSkillsOffered(profileData.skillsOffered);
+      if (profileData.skillsWanted?.length) setSkillsWanted(profileData.skillsWanted);
+      setAboutMe(profileData.aboutMe || '');
+      if (profileData.education?.length) setEducation(profileData.education);
 
-        const { data: streakData } = await API.post('/users/update-streak', {}, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUser(prev => ({ ...prev, streak: streakData.streak, points: streakData.points }));
+      const { data: streakData } = await API.post('/users/update-streak', {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUser(prev => ({ ...prev, streak: streakData.streak, points: streakData.points }));
 
-        const visitHistory = [];
-        const today = moment().startOf('day');
-        for (let i = 0; i < streakData.streak; i++) {
-          visitHistory.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
-        }
-        setStreakData({
-          totalDays: streakData.streak,
-          maxStreak: Math.max(streakData.streak, streakData.streak || 0),
-          currentStreak: streakData.streak,
-          visitHistory,
-        });
-      } catch (err) {
-        toast.error('Failed to fetch profile or update streak');
-        console.error('Fetch Error:', err);
+      const visitHistory = [];
+      const today = moment().startOf('day');
+      for (let i = 0; i < streakData.streak; i++) {
+        visitHistory.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
       }
-    };
-    fetchProfileAndStreak();
-  }, [token]);
+      setStreakData({
+        totalDays: streakData.streak,
+        maxStreak: Math.max(streakData.streak, streakData.streak || 0),
+        currentStreak: streakData.streak,
+        visitHistory,
+      });
+    } catch (err) {
+      toast.error('Failed to fetch profile or update streak');
+      console.error('Fetch Error:', err);
+    }
+  };
+  if (token) fetchProfileAndStreak();
+}, [token]);
 
   const handleChange = useCallback((type, index, field, value) => {
     const updated = [...(type === 'offered' ? skillsOffered : skillsWanted)];

@@ -60,18 +60,29 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ message: 'Invalid theme' });
     }
     console.log(`[${new Date().toISOString()}] POST /api/post/posts - Creating post for user: ${req.user._id}, content: ${content}, theme: ${theme}`);
-    const post = new Post({
+
+    const postData = {
       content,
       author: req.user._id,
       media,
       theme,
-      pollOptions: pollOptions ? JSON.parse(pollOptions) : undefined,
-      pollResults: pollOptions ? Array(JSON.parse(pollOptions).length).fill(0) : undefined,
-      likes: [],
-      reactions: { like: 0, celebrate: 0, insightful: 0 },
-      bookmarks: [],
-    });
+    };
+
+    // Only include poll-related fields if pollOptions is provided and valid
+    if (pollOptions) {
+      const parsedPollOptions = JSON.parse(pollOptions);
+      if (Array.isArray(parsedPollOptions) && parsedPollOptions.every(opt => typeof opt === 'string' && opt.trim())) {
+        postData.pollOptions = parsedPollOptions;
+        postData.pollResults = Array(parsedPollOptions.length).fill(0);
+        postData.pollVotes = new Map();
+      } else {
+        return res.status(400).json({ message: 'Invalid poll options' });
+      }
+    }
+
+    const post = new Post(postData);
     await post.save();
+
     if (content) {
       const skills = extractSkills(content);
       for (const skill of skills) {
@@ -89,7 +100,6 @@ exports.createPost = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 exports.deletePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);

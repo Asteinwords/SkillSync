@@ -44,112 +44,130 @@ const cardVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
 };
 
-const PostCard = ({ post, myId, token, handleLike, handleBookmark, handleComment, handlePollVote, handleDelete }) => (
-  <motion.div
-    variants={cardVariants}
-    className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-3xl p-6 mb-6 shadow-xl border-t-4 border-secondary transition-all duration-300 hover:shadow-2xl"
-  >
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-accent/30 flex items-center justify-center text-accent font-extrabold text-xl">
-          {post.author?.name?.[0] || '?'}
+const PostCard = ({ post, myId, token, handleLike, handleBookmark, handleComment, handlePollVote, handleDelete }) => {
+  const totalVotes = post.pollResults ? Object.values(post.pollResults).reduce((a, b) => a + b, 0) : 0;
+  console.log(`[${new Date().toISOString()}] PostCard - Rendering poll for post ${post._id}, totalVotes: ${totalVotes}, pollResults:`, post.pollResults, 'pollOptions:', post.pollOptions);
+
+  return (
+    <motion.div
+      variants={cardVariants}
+      className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-3xl p-6 mb-6 shadow-xl border-t-4 border-secondary transition-all duration-300 hover:shadow-2xl"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-accent/30 flex items-center justify-center text-accent font-extrabold text-xl">
+            {post.author?.name?.[0] || '?'}
+          </div>
+          <div>
+            <Link
+              to={`/users/${post.author?._id}/profile`}
+              className="font-bold text-gray-900 text-lg hover:text-accent transition"
+            >
+              {post.author?.name || 'Unknown User'}
+            </Link>
+            <p className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleString()}</p>
+          </div>
         </div>
-        <div>
-          <Link
-            to={`/users/${post.author?._id}/profile`}
-            className="font-bold text-gray-900 text-lg hover:text-accent transition"
+        {post.author?._id === myId && (
+          <button
+            onClick={() => handleDelete(post._id)}
+            className="text-red-400 hover:text-red-600 transition"
+            title="Delete Post"
           >
-            {post.author?.name || 'Unknown User'}
-          </Link>
-          <p className="text-xs text-gray-500">{new Date(post.createdAt).toLocaleString()}</p>
-        </div>
-      </div>
-      {post.author?._id === myId && (
-        <button
-          onClick={() => handleDelete(post._id)}
-          className="text-red-400 hover:text-red-600 transition"
-          title="Delete Post"
-        >
-          <Trash2 className="w-6 h-6" />
-        </button>
-      )}
-    </div>
-    <p className="text-gray-800 mb-4 text-base">{post.content}</p>
-    <p className="text-sm text-secondary font-semibold mb-4">{post.theme}</p>
-    {post.media && (
-      <div className="mb-6">
-        {post.media.type.startsWith('image/') ? (
-          <img src={post.media.url} alt="Post media" className="max-w-full h-auto rounded-2xl object-cover" />
-        ) : (
-          <video controls src={post.media.url} className="max-w-full h-auto rounded-2xl" />
+            <Trash2 className="w-6 h-6" />
+          </button>
         )}
       </div>
-    )}
-    {post.pollOptions && (
-      <div className="mb-6">
-        <h4 className="text-sm font-bold text-accent">Poll</h4>
-        {post.pollOptions.map((option, index) => (
-          <button
-            key={index}
-            onClick={() => handlePollVote(post._id, index)}
-            className={`flex w-full p-3 mt-2 rounded-lg border text-left text-sm ${post.pollVotes?.[myId] === index ? 'bg-accent/20 border-accent' : 'border-gray-200 hover:bg-accent/10'} transition`}
-            disabled={post.pollVotes?.[myId] !== undefined}
-          >
-            {option} <span className="ml-auto">({post.pollResults?.[index] || 0} votes)</span>
-          </button>
-        ))}
-        <p className="text-xs text-gray-500 mt-2">Total votes: {Object.values(post.pollResults || {}).reduce((a, b) => a + b, 0)}</p>
-      </div>
-    )}
-    <div className="flex items-center gap-6 text-sm">
-      <div className="relative group">
-        <button className="flex items-center gap-2 text-accent hover:text-accent-dark transition">
-          <Heart className="w-5 h-5" />
-          {Object.values(post.reactions || {}).reduce((a, b) => a + b, 0)} Reactions
-        </button>
-        <div className="absolute hidden group-hover:flex gap-4 p-4 bg-white shadow-2xl rounded-xl z-10">
-          <button onClick={() => handleLike(post._id, 'like')} className="text-accent hover:text-accent-dark flex items-center gap-1">
-            <ThumbsUp className="w-4 h-4" /> Like
-          </button>
-          <button onClick={() => handleLike(post._id, 'celebrate')} className="text-accent hover:text-accent-dark flex items-center gap-1">
-            <Award className="w-4 h-4" /> Celebrate
-          </button>
-          <button onClick={() => handleLike(post._id, 'insightful')} className="text-accent hover:text-accent-dark flex items-center gap-1">
-            <Lightbulb className="w-4 h-4" /> Insightful
-          </button>
+      <p className="text-gray-800 mb-4 text-base">{post.content}</p>
+      <p className="text-sm text-secondary font-semibold mb-4">{post.theme}</p>
+      {post.media && (
+        <div className="mb-6">
+          {post.media.type.startsWith('image/') ? (
+            <img src={post.media.url} alt="Post media" className="max-w-full h-auto rounded-2xl object-cover" />
+          ) : (
+            <video controls src={post.media.url} className="max-w-full h-auto rounded-2xl" />
+          )}
         </div>
+      )}
+      {post.pollOptions && post.pollOptions.length > 0 && (
+        <div className="mb-6">
+          <h4 className="text-sm font-bold text-accent">Poll</h4>
+          {post.pollOptions.map((option, index) => {
+            const votes = post.pollResults?.[index] || 0;
+            const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
+            console.log(`[${new Date().toISOString()}] PostCard - Option ${index}: ${option}, votes: ${votes}, percentage: ${percentage}%`);
+            return (
+              <button
+                key={index}
+                onClick={() => handlePollVote(post._id, index)}
+                className="flex w-full p-3 mt-2 rounded-lg border text-left text-sm relative overflow-hidden group"
+                disabled={post.pollVotes?.[myId] !== undefined}
+              >
+                <span className="z-10 relative flex-1">{option}</span>
+                <span className="z-10 relative ml-4">({votes} votes)</span>
+                <span
+                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-accent to-accent-dark opacity-90 transition-all duration-500 ease-out"
+                  style={{ width: `${percentage}%` }}
+                />
+                <span
+                  className="absolute left-0 top-0 h-full bg-gray-200 opacity-30 group-hover:opacity-50 transition-opacity duration-300"
+                  style={{ width: '100%' }}
+                />
+              </button>
+            );
+          })}
+          <p className="text-xs text-gray-500 mt-2">Total votes: {totalVotes}</p>
+        </div>
+      )}
+      <div className="flex items-center gap-6 text-sm">
+        <div className="relative group">
+          <button className="flex items-center gap-2 text-accent hover:text-accent-dark transition">
+            <Heart className="w-5 h-5" />
+            {Object.values(post.reactions || {}).reduce((a, b) => a + b, 0)} Reactions
+          </button>
+          <div className="absolute hidden group-hover:flex gap-4 p-4 bg-white shadow-2xl rounded-xl z-10">
+            <button onClick={() => handleLike(post._id, 'like')} className="text-accent hover:text-accent-dark flex items-center gap-1">
+              <ThumbsUp className="w-4 h-4" /> Like
+            </button>
+            <button onClick={() => handleLike(post._id, 'celebrate')} className="text-accent hover:text-accent-dark flex items-center gap-1">
+              <Award className="w-4 h-4" /> Celebrate
+            </button>
+            <button onClick={() => handleLike(post._id, 'insightful')} className="text-accent hover:text-accent-dark flex items-center gap-1">
+              <Lightbulb className="w-4 h-4" /> Insightful
+            </button>
+          </div>
+        </div>
+        <button
+          onClick={() => handleBookmark(post._id)}
+          className={`flex items-center gap-2 ${post.bookmarks?.includes(myId) ? 'text-secondary' : 'text-accent'} hover:text-secondary-dark transition`}
+        >
+          <Bookmark className="w-5 h-5" />
+          {post.bookmarks?.length || 0}
+        </button>
+        <button
+          onClick={() => {
+            const comment = prompt('Enter your comment:');
+            if (comment) handleComment(post._id, comment);
+          }}
+          className="flex items-center gap-2 text-accent hover:text-accent-dark transition"
+        >
+          <MessageCircle className="w-5 h-5" />
+          {post.comments?.length || 0}
+        </button>
       </div>
-      <button
-        onClick={() => handleBookmark(post._id)}
-        className={`flex items-center gap-2 ${post.bookmarks?.includes(myId) ? 'text-secondary' : 'text-accent'} hover:text-secondary-dark transition`}
-      >
-        <Bookmark className="w-5 h-5" />
-        {post.bookmarks?.length || 0}
-      </button>
-      <button
-        onClick={() => {
-          const comment = prompt('Enter your comment:');
-          if (comment) handleComment(post._id, comment);
-        }}
-        className="flex items-center gap-2 text-accent hover:text-accent-dark transition"
-      >
-        <MessageCircle className="w-5 h-5" />
-        {post.comments?.length || 0}
-      </button>
-    </div>
-    {post.comments?.length > 0 && (
-      <div className="mt-4">
-        <h4 className="text-sm font-bold text-accent">Comments</h4>
-        {post.comments.map((comment, index) => (
-          <p key={index} className="text-sm text-gray-600 mt-2">
-            <span className="font-semibold">{comment.author?.name || 'Unknown'}:</span> {comment.content}
-          </p>
-        ))}
-      </div>
-    )}
-  </motion.div>
-);
-
+      {post.comments?.length > 0 && (
+        <div className="mt-4">
+          <h4 className="text-sm font-bold text-accent">Comments</h4>
+          {post.comments.map((comment, index) => (
+            <p key={index} className="text-sm text-gray-600 mt-2">
+              <span className="font-semibold">{comment.author?.name || 'Unknown'}:</span> {comment.content}
+            </p>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+};
 const CommunityFeed = () => {
   const [posts, setPosts] = useState([]);
   const [events, setEvents] = useState([]);

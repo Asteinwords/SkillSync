@@ -238,11 +238,11 @@ const Navbar = () => {
                     Schedule
                   </Link>
                 </motion.div>
-                <motion.div variants={linkVariants}>
+                {/* <motion.div variants={linkVariants}>
                   <Link to="/room" className="hover:text-blue-300 transition-colors">
                     Rooms
                   </Link>
-                </motion.div>
+                </motion.div> */}
                 <motion.div variants={linkVariants}>
                   <Link to="/chat" className="hover:text-blue-300 transition-colors">
                     Chat
