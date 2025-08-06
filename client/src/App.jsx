@@ -198,6 +198,7 @@ import MainHome from "./pages/MainHome";
 import CommunityFeed from "./pages/CommunityFeed";
 import Bookmarks from "./pages/Bookmarks";
 import Badges from "./components/Badges";
+import AccountDeletion from "./components/AccountDeletion";
 
 function App() {
   return (
@@ -228,6 +229,7 @@ function App() {
           <Route path="/bookmarks" element={<PrivateRoute><Bookmarks /></PrivateRoute>} />
           <Route path="/reset_password/:id/:token" element={<PrivateRoute><ResetPassword /></PrivateRoute>} />
           <Route path="/badges" element={<PrivateRoute><Badges /></PrivateRoute>} />
+          <Route path="/delete" element={<PrivateRoute><AccountDeletion /></PrivateRoute>} />
 
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFound />} />

@@ -397,3 +397,41 @@ exports.updateStreak = async (req, res) => {
     res.status(500).json({ message: 'Failed to update streak' });
   }
 };
+exports.deleteUser = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log(`[${new Date().toISOString()}] User not found: ${userId}`);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Delete user's sessions (as requester or recipient)
+    await Session.deleteMany({
+      $or: [{ requester: userId }, { recipient: userId }],
+    });
+
+    // Remove user from other users' followers, following, and followRequests
+    await User.updateMany(
+      { followers: userId },
+      { $pull: { followers: userId } }
+    );
+    await User.updateMany(
+      { following: userId },
+      { $pull: { following: userId } }
+    );
+    await User.updateMany(
+      { followRequests: userId },
+      { $pull: { followRequests: userId } }
+    );
+
+    // Delete the user
+    await User.deleteOne({ _id: userId });
+
+    console.log(`[${new Date().toISOString()}] User deleted: ${userId}`);
+    res.status(200).json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] Error deleting user ${req.user._id}:`, err.message, err.stack);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

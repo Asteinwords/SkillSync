@@ -15,7 +15,8 @@ const {
   updateProfileImage,
   updateProfileInfo,
   updateStreak,
-  updateVisit, // Add this import
+  updateVisit, 
+  deleteUser,// Add this import
 } = require('../controllers/userController');
 const { getMutualFollowers } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
@@ -42,7 +43,7 @@ router.post('/accept-follow', protect, acceptFollowRequest);
 router.post('/update-visit/:id', protect, updateVisit); // Add this route
 router.put('/profile-image', protect, updateProfileImage);
 router.post('/update-streak', protect, updateStreak);
-
+router.delete('/delete', protect, deleteUser);
 router.get('/follow-requests', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).populate('followRequests', 'name email');

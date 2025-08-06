@@ -38,10 +38,13 @@ const userSchema = new mongoose.Schema({
     }
   ],
   badge: {
-    type: String,
-    enum: ['Beginner', 'Contributor', 'Mentor', 'Expert'],
-    default: 'Beginner',
+  type: String,
+  enum: {
+    values: ['Beginner', 'Contributor', 'Mentor', 'Expert'],
+    message: '{VALUE} is not a valid badge',
   },
+  default: 'Beginner',
+},
   skillsWanted: [
     {
       skill: String,
