@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Menu, X } from 'lucide-react';
+import { Bell, Menu, X, User } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
 import API from '../services/api';
 import socket from '../services/socket';
@@ -40,6 +40,7 @@ const Navbar = () => {
   const [notifications, setNotifications] = useState([]);
   const [messageNotifications, setMessageNotifications] = useState({});
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const getStorageItem = (key) => {
@@ -262,6 +263,11 @@ const Navbar = () => {
             ) : (
               <>
                 <motion.div variants={linkVariants}>
+                  <Link to="/webpage" className="hover:text-blue-300 transition-colors">
+                    Home
+                  </Link>
+                </motion.div>
+                <motion.div variants={linkVariants}>
                   <Link to="/dashboard" className="hover:text-blue-300 transition-colors">
                     Dashboard
                   </Link>
@@ -291,88 +297,126 @@ const Navbar = () => {
                     Chat
                   </Link>
                 </motion.div>
-                <motion.div variants={linkVariants}>
-                  <button
-                    onClick={handleLogout}
-                    className="hover:text-red-300 transition-colors"
-                  >
-                    Logout
-                  </button>
-                </motion.div>
               </>
             )}
           </motion.div>
 
-          {/* Notification Bell */}
+          {/* Notification Bell and User Dropdown */}
           {authenticated && (
-            <div className="relative">
-              <motion.button
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="bg-white/90 backdrop-blur-md text-blue-900 p-2 rounded-full shadow-lg hover:bg-blue-100 transition-all relative"
-                whileHover={{ scale: 1.1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Bell className="w-5 h-5" />
-                {notificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
-                    {notificationCount}
-                  </span>
-                )}
-              </motion.button>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <motion.button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="bg-white/90 backdrop-blur-md text-blue-900 p-2 rounded-full shadow-lg hover:bg-blue-100 transition-all relative"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Bell className="w-5 h-5" />
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full">
+                      {notificationCount}
+                    </span>
+                  )}
+                </motion.button>
 
-              <AnimatePresence>
-                {showDropdown && (
-                  <motion.div
-                    className="absolute right-0 mt-3 w-80 bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl p-5 border border-blue-200/50 z-50 text-gray-900"
-                    variants={dropdownVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="hidden"
-                  >
-                    <h4 className="font-bold text-blue-600 mb-3">Notifications</h4>
-                    {notificationCount === 0 ? (
-                      <p className="text-gray-600 text-sm">No new notifications</p>
-                    ) : (
-                      <>
-                        {notifications.map((user) => (
-                          <motion.div
-                            key={user._id}
-                            className="flex justify-between items-center mb-4 last:mb-0"
-                            variants={itemVariants}
-                          >
-                            <div className="truncate">
-                              <p className="font-semibold text-blue-700">{user.name}</p>
-                              <p className="text-sm text-gray-500 truncate">Follow request</p>
-                            </div>
-                            <motion.button
-                              onClick={() => handleAccept(user._id)}
-                              className="bg-emerald-500 text-white px-4 py-1 rounded-full text-sm hover:bg-emerald-600 transition-colors"
-                              whileHover={{ scale: 1.05 }}
+                <AnimatePresence>
+                  {showDropdown && (
+                    <motion.div
+                      className="absolute right-0 mt-3 w-80 bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl p-5 border border-blue-200/50 z-50 text-gray-900"
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                    >
+                      <h4 className="font-bold text-blue-600 mb-3">Notifications</h4>
+                      {notificationCount === 0 ? (
+                        <p className="text-gray-600 text-sm">No new notifications</p>
+                      ) : (
+                        <>
+                          {notifications.map((user) => (
+                            <motion.div
+                              key={user._id}
+                              className="flex justify-between items-center mb-4 last:mb-0"
+                              variants={itemVariants}
                             >
-                              Accept
-                            </motion.button>
-                          </motion.div>
-                        ))}
-                        {Object.values(messageNotifications).map((notification) => (
-                          <motion.div
-                            key={notification.from}
-                            className="flex justify-between items-center mb-4 last:mb-0 cursor-pointer"
-                            variants={itemVariants}
-                            onClick={() => handleMessageClick(notification.from, notification.senderName)}
-                          >
-                            <div className="truncate">
-                              <p className="font-semibold text-blue-700">{notification.senderName}</p>
-                              <p className="text-sm text-gray-500 truncate">
-                                {notification.messages.map((m) => m.message).join(' and ')}
-                              </p>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                              <div className="truncate">
+                                <p className="font-semibold text-blue-700">{user.name}</p>
+                                <p className="text-sm text-gray-500 truncate">Follow request</p>
+                              </div>
+                              <motion.button
+                                onClick={() => handleAccept(user._id)}
+                                className="bg-emerald-500 text-white px-4 py-1 rounded-full text-sm hover:bg-emerald-600 transition-colors"
+                                whileHover={{ scale: 1.05 }}
+                              >
+                                Accept
+                              </motion.button>
+                            </motion.div>
+                          ))}
+                          {Object.values(messageNotifications).map((notification) => (
+                            <motion.div
+                              key={notification.from}
+                              className="flex justify-between items-center mb-4 last:mb-0 cursor-pointer"
+                              variants={itemVariants}
+                              onClick={() => handleMessageClick(notification.from, notification.senderName)}
+                            >
+                              <div className="truncate">
+                                <p className="font-semibold text-blue-700">{notification.senderName}</p>
+                                <p className="text-sm text-gray-500 truncate">
+                                  {notification.messages.map((m) => m.message).join(' and ')}
+                                </p>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* User Dropdown */}
+              <div className="relative">
+                <motion.button
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className="bg-white/90 backdrop-blur-md text-blue-900 p-2 rounded-full shadow-lg hover:bg-blue-100 transition-all"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <User className="w-5 h-5" />
+                </motion.button>
+
+                <AnimatePresence>
+                  {showUserDropdown && (
+                    <motion.div
+                      className="absolute right-0 mt-3 w-48 bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl p-4 border border-blue-200/50 z-50 text-gray-900"
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                    >
+                      <motion.button
+                        onClick={() => {
+                          handleLogout();
+                          setShowUserDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                        variants={itemVariants}
+                      >
+                        Logout
+                      </motion.button>
+                      <motion.div variants={itemVariants}>
+                        <Link
+                          to="/delete"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                          onClick={() => setShowUserDropdown(false)}
+                        >
+                          Delete Account
+                        </Link>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           )}
         </div>

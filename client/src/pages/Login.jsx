@@ -28,7 +28,7 @@ const Login = () => {
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('userId', _id); // Store userId
     toast.success('🎉 Login successful');
-    navigate('/dashboard');
+    navigate('/webpage');
   } catch (err) {
     const msg = err.response?.data?.message || 'Login failed. Try again.';
     toast.error(`❌ ${msg}`);

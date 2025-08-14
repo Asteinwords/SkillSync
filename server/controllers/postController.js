@@ -35,7 +35,7 @@ exports.getAllPosts = async (req, res) => {
       .limit(limit);
     const total = await Post.countDocuments(query);
     console.log(`[${new Date().toISOString()}] Found ${posts.length} posts, total: ${total}`);
-    res.json({ posts, hasMore: skip + posts.length < total });
+    res.json({ posts, total, hasMore: skip + posts.length < total });
   } catch (err) {
     console.error(`[${new Date().toISOString()}] Error fetching posts:`, err.message, err.stack);
     res.status(500).json({ message: 'Server error' });

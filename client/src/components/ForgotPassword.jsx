@@ -11,7 +11,7 @@ function ForgotPassword() {
     axios.defaults.withCredentials = true;
     const handleSubmit = (e) => {
         e.preventDefault()
-        axios.post('https://skillsync-cvqg.onrender.com/forgot-password', {email})
+        axios.post('http://localhost:5000/forgot-password', {email})
         .then(res => {
             if(res.data.Status === "Success") {
                 navigate('/login')

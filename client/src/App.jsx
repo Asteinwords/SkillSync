@@ -223,7 +223,7 @@ function App() {
           <Route path="/live-room/:roomId" element={<PrivateRoute><LiveRoom /></PrivateRoute>} />
           <Route path="/room" element={<PrivateRoute><Rooms /></PrivateRoute>} />
           <Route path="/chatt" element={<PrivateRoute><Chat /></PrivateRoute>} />
-          <Route path="/home" element={<PrivateRoute><MainHome /></PrivateRoute>} />
+          <Route path="/webpage" element={<PrivateRoute><MainHome /></PrivateRoute>} />
           <Route path="/forgot-password" element={<PrivateRoute><ForgotPassword /></PrivateRoute>} />
           <Route path="/community" element={<PrivateRoute><CommunityFeed /></PrivateRoute>} />
           <Route path="/bookmarks" element={<PrivateRoute><Bookmarks /></PrivateRoute>} />

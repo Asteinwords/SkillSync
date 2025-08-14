@@ -1,304 +1,367 @@
-import React, { useState, useEffect, Component } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import API from '../services/api';
+import { Sparkles, MessageCircle, X, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sun, Moon, MessageCircle, Award } from 'lucide-react';
+import Stars from '../assets/stars.svg';
+import moment from 'moment';
 
-// Error Boundary Component
-class ErrorBoundary extends Component {
-  state = { hasError: false };
+// Memoized PastRoomCard
+const PastRoomCard = ({ session, index, myId }) => {
+  const role = session.requester?._id === myId ? 'requester' : 'recipient';
+  const userJoinTime = role === 'requester' ? session.pastRoom?.requesterJoinTime : session.pastRoom?.recipientJoinTime;
+  const userLeaveTime = role === 'requester' ? session.pastRoom?.requesterLeaveTime : session.pastRoom?.recipientLeaveTime;
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  if (!session.pastRoom || !session.pastRoom.hostName || !session.pastRoom.participantName) {
+    console.warn(`[${moment().format('YYYY-MM-DD HH:mm:ss +05:30')}] Skipping past room due to missing data:`, { sessionId: session._id, pastRoom: session.pastRoom });
+    return null;
   }
-
-  render() {
-    if (this.state.hasError) {
-      return <div className="text-center text-red-600 p-4">Something went wrong. Please try refreshing.</div>;
-    }
-    return this.props.children;
-  }
-}
-
-const MainHome = () => {
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [chatbotOpen, setChatbotOpen] = useState(false);
-  const [chatbotMessages, setChatbotMessages] = useState([]);
-  const [userInput, setUserInput] = useState('');
-  const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');
-  const [currentSkillIndex, setCurrentSkillIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    // Fetch leaderboard
-    setIsLoading(true);
-    axios
-      .get('/api/users/leaderboard')
-      .then((res) => {
-        console.log('✅ Leaderboard data:', res.data);
-        // Ensure skillsOffered is an array for each user
-        const sanitizedData = res.data.map((user) => ({
-          ...user,
-          skillsOffered: Array.isArray(user.skillsOffered) ? user.skillsOffered : [],
-        }));
-        setLeaderboard(sanitizedData);
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        console.error('❌ Error fetching leaderboard:', err.message);
-        setError('Failed to load leaderboard');
-        setIsLoading(false);
-      });
-
-    // Set theme
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
-
-  const handleChatbotSubmit = async (e) => {
-    e.preventDefault();
-    if (!userInput.trim()) return;
-    setChatbotMessages([...chatbotMessages, { text: userInput, sender: 'user' }]);
-    try {
-      const res = await axios.post('/api/chatbot', { message: userInput });
-      setChatbotMessages([...chatbotMessages, { text: userInput, sender: 'user' }, { text: res.data.reply, sender: 'bot' }]);
-    } catch (err) {
-      setChatbotMessages([...chatbotMessages, { text: userInput, sender: 'user' }, { text: 'Sorry, something went wrong!', sender: 'bot' }]);
-    }
-    setUserInput('');
-  };
-
-  const nextSkill = () => setCurrentSkillIndex((prev) => (prev + 1) % (leaderboard.length || 1));
-  const prevSkill = () => setCurrentSkillIndex((prev) => (prev - 1 + (leaderboard.length || 1)) % (leaderboard.length || 1));
 
   return (
-    <ErrorBoundary>
-      <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
-        {/* Header */}
-        <header className="p-4 flex justify-between items-center border-b dark:border-gray-700">
-          <h1 className="text-2xl font-bold">SkillSwap</h1>
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {darkMode ? <Sun size={24} /> : <Moon size={24} />}
-          </button>
-        </header>
+    <motion.div
+      key={session._id}
+      variants={itemVariants}
+      className={`flex flex-col py-2 px-3 sm:py-3 sm:px-4 rounded-xl mb-3 transition-all duration-300 shadow-md bg-gradient-to-r from-teal-50/80 to-blue-50/80 border-l-4 border-teal-400 ${
+        index === 0 ? 'from-teal-50/80 to-blue-50/80' :
+        index === 1 ? 'from-blue-50/80 to-gray-50/80' :
+        'from-purple-50/80 to-teal-50/80'
+      }`}
+      style={{ overflow: 'visible' }}
+    >
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-teal-800 flex items-center gap-2 text-xs sm:text-sm">
+          <span className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-teal-200 flex items-center justify-center text-teal-600 font-bold">
+            {session.pastRoom.hostName[0] || '?'}
+          </span>
+          With: {role === 'requester' ? session.pastRoom.participantName : session.pastRoom.hostName}
+        </p>
+        <span className="text-xs bg-teal-100 text-teal-600 px-2 py-0.5 rounded-full font-medium">
+          Done
+        </span>
+      </div>
+      <p className="text-xs text-gray-600 mt-1 sm:mt-2">
+        Join: {userJoinTime || 'Not joined'} | Leave: {userLeaveTime || 'Not marked'}
+      </p>
+    </motion.div>
+  );
+};
 
-        {/* Main Content */}
-        <main className="flex-grow p-6">
-          {/* Hero Section */}
-          <section className="text-center mb-12">
-            <motion.h2
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-4xl font-bold mb-4"
-            >
-              Connect, Learn, and Grow
-            </motion.h2>
-            <p className="text-lg mb-6">Swap skills with experts worldwide in real-time!</p>
-            <a
-              href="/chat"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Start Chatting
-            </a>
-          </section>
+const badgeStyles = {
+  Beginner: 'bg-blue-100 text-blue-700',
+  Contributor: 'bg-purple-100 text-purple-700',
+  Mentor: 'bg-pink-100 text-pink-700',
+  Expert: 'bg-yellow-100 text-yellow-800',
+};
 
-          {/* Interactive Skill Showcase */}
-          <section className="mb-12">
-            <h3 className="text-2xl font-semibold mb-4 text-center">Featured Skills</h3>
-            <div className="relative max-w-4xl mx-auto">
-              {isLoading ? (
-                <div className="text-center text-gray-600 dark:text-gray-300">Loading skills...</div>
-              ) : error ? (
-                <div className="text-center text-red-600">{error}</div>
-              ) : leaderboard.length === 0 ? (
-                <div className="text-center text-gray-600 dark:text-gray-300">No skills available</div>
-              ) : (
-                <AnimatePresence>
-                  <motion.div
-                    key={currentSkillIndex}
-                    initial={{ opacity: 0, x: 100 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -100 }}
-                    transition={{ duration: 0.3 }}
-                    className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg flex items-center"
-                  >
-                    <img
-                      src={leaderboard[currentSkillIndex]?.profileImage || 'https://via.placeholder.com/64'}
-                      alt="User avatar"
-                      className="w-16 h-16 rounded-full mr-4"
-                      onError={(e) => (e.target.src = 'https://via.placeholder.com/64')}
-                    />
-                    <div>
-                      <h4 className="text-xl font-bold">{leaderboard[currentSkillIndex]?.name || 'Unknown User'}</h4>
-                      <p className="text-gray-600 dark:text-gray-300">
-                        {leaderboard[currentSkillIndex]?.skillsOffered?.[0]?.skill || 'No skill listed'} -{' '}
-                        {leaderboard[currentSkillIndex]?.points || 0} points
-                      </p>
-                      <a
-                        href={`/chat?receiverId=${leaderboard[currentSkillIndex]?._id || ''}`}
-                        className="mt-2 inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-                      >
-                        Connect Now
-                      </a>
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-              )}
-              {leaderboard.length > 1 && (
-                <>
-                  <button
-                    onClick={prevSkill}
-                    className="absolute left-0 top-1/2 transform -translate-y-1/2 p-2 bg-gray-200 dark:bg-gray-700 rounded-full"
-                    aria-label="Previous skill"
-                  >
-                    &larr;
-                  </button>
-                  <button
-                    onClick={nextSkill}
-                    className="absolute right-0 top-1/2 transform -translate-y-1/2 p-2 bg-gray-200 dark:bg-gray-700 rounded-full"
-                    aria-label="Next skill"
-                  >
-                    &rarr;
-                  </button>
-                </>
-              )}
-            </div>
-          </section>
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.15 } },
+};
 
-          {/* Leaderboard */}
-          <section className="mb-12">
-            <h3 className="text-2xl font-semibold mb-4 text-center">Leaderboard</h3>
-            {isLoading ? (
-              <div className="text-center text-gray-600 dark:text-gray-300">Loading leaderboard...</div>
-            ) : error ? (
-              <div className="text-center text-red-600">{error}</div>
-            ) : leaderboard.length === 0 ? (
-              <div className="text-center text-gray-600 dark:text-gray-300">No users available</div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {leaderboard.map((user, index) => (
-                  <motion.div
-                    key={user._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow"
-                  >
-                    <div className="flex items-center">
-                      <Award className="mr-2 text-yellow-500" />
-                      <img
-                        src={user.profileImage || 'https://via.placeholder.com/40'}
-                        alt="User avatar"
-                        className="w-10 h-10 rounded-full mr-4"
-                        onError={(e) => (e.target.src = 'https://via.placeholder.com/40')}
-                      />
-                      <div>
-                        <h4 className="font-bold">{user.name || 'Unknown'}</h4>
-                        <p className="text-gray-600 dark:text-gray-300">{user.points || 0} points</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </section>
-        </main>
+const itemVariants = {
+  hidden: { opacity: 0, y: 50, scale: 0.9 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: 'backOut' } },
+};
 
-        {/* Chatbot Widget */}
-        <AnimatePresence>
-          {chatbotOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
-              className="fixed bottom-20 right-4 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4"
-            >
-              <div className="h-64 overflow-y-auto mb-4">
-                {chatbotMessages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`p-2 mb-2 rounded-lg ${
-                      msg.sender === 'user' ? 'bg-blue-100 text-right dark:bg-blue-900' : 'bg-gray-100 dark:bg-gray-700'
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                ))}
-              </div>
-              <form onSubmit={handleChatbotSubmit} className="flex">
-                <input
-                  type="text"
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  className="flex-grow p-2 rounded-l-lg border dark:border-gray-700 dark:bg-gray-900"
-                  placeholder="Ask me anything..."
-                />
-                <button
-                  type="submit"
-                  className="p-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700"
-                  aria-label="Send message"
-                >
-                  <MessageCircle size={20} />
-                </button>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <button
-          onClick={() => setChatbotOpen(!chatbotOpen)}
-          className="fixed bottom-4 right-4 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700"
-          aria-label="Toggle chatbot"
+const cardVariants = {
+  hidden: { opacity: 0, y: 100, rotate: -10 },
+  visible: { opacity: 1, y: 0, rotate: 0, transition: { duration: 0.8, ease: 'circOut' } },
+};
+
+const tipVariants = {
+  hidden: { opacity: 0, x: -50 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: 'easeInOut' } },
+  exit: { opacity: 0, x: 50, transition: { duration: 0.5, ease: 'easeInOut' } },
+};
+
+const MainHome = () => {
+  const [users, setUsers] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [user, setUser] = useState(null);
+  const [communityStats, setCommunityStats] = useState({ totalPosts: 0, activeUsersToday: 0 });
+  const [currentTips, setCurrentTips] = useState([]);
+  const myId = localStorage.getItem('userId');
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+
+  const tips = useMemo(() => [
+    'Complete your profile to attract more skill partners.',
+    'Earn points by teaching or engaging in community activities.',
+    'Schedule sessions via the Community Hub for better matches.',
+    'Check your feedback to improve your SkillSync experience.',
+    'Join discussions in the forum to share your expertise.',
+    'Use clear, concise titles for your session requests.',
+    'Be punctual for scheduled sessions to build trust.',
+    'Provide constructive feedback after each session.',
+    'Explore new skills to expand your learning opportunities.',
+    'Connect with users who share your interests.',
+    'Update your availability regularly for better scheduling.',
+    'Celebrate milestones to stay motivated in your learning journey.'
+  ], []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token) {
+        console.log(`[${moment().format('YYYY-MM-DD HH:mm:ss +05:30')}] No token, redirecting to login`);
+        navigate('/login');
+        return;
+      }
+      try {
+        const [userRes, leaderboardRes, sessionsRes, postsRes] = await Promise.all([
+          API.get('/users/me', { headers: { Authorization: `Bearer ${token}` } }),
+          API.get('/users/top-users'),
+          API.get('/sessions', { headers: { Authorization: `Bearer ${token}` } }),
+          API.get('/post/posts?page=1&limit=1', { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        setUser(userRes.data);
+        setUsers(leaderboardRes.data.slice(0, 3));
+        setSessions(sessionsRes.data);
+        setCommunityStats({
+          totalPosts: postsRes.data.total || 0,
+          activeUsersToday: sessionsRes.data.filter(s => s.status === 'active').length || 0,
+        });
+      } catch (err) {
+        console.error(`[${moment().format('YYYY-MM-DD HH:mm:ss +05:30')}] Fetch Error:`, err.response?.data || err.message);
+        if (err.response?.status === 401) {
+          navigate('/login');
+        }
+      }
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [token, navigate]);
+
+  useEffect(() => {
+    const getRandomTips = () => {
+      const shuffled = [...tips].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, 4);
+    };
+    setCurrentTips(getRandomTips());
+    const tipInterval = setInterval(() => {
+      setCurrentTips(getRandomTips());
+    }, 5000);
+    return () => clearInterval(tipInterval);
+  }, [tips]);
+
+  const feedbacks = useMemo(() => sessions
+    .filter((s) => s.status === 'done' && (s.requesterFeedback || s.recipientFeedback))
+    .flatMap((s) => [
+      s.requesterFeedback && s.requester?._id !== myId ? { ...s.requesterFeedback, from: s.requester.name } : null,
+      s.recipientFeedback && s.recipient?._id !== myId ? { ...s.recipientFeedback, from: s.recipient.name } : null,
+    ])
+    .filter(Boolean), [sessions, myId]);
+
+  if (!user) {
+    return <p className="text-center mt-20 text-2xl text-yellow-400 animate-pulse">Loading...</p>;
+  }
+
+  return (
+    <div className="relative min-h-screen bg-gradient-to-br from-black via-purple-900 to-indigo-900 text-white overflow-hidden p-4 sm:p-6">
+      <div className="absolute inset-0 overflow-hidden">
+        <motion.img
+          src={Stars}
+          alt="Starry Sky"
+          className="w-full h-full object-cover opacity-50"
+          animate={{ y: [0, -20, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+      </div>
+
+      <motion.div
+        className="relative z-10 flex items-center justify-center sm:justify-start gap-6 py-4"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <motion.div
+          variants={itemVariants}
+          className="flex-shrink-0 transform hover:scale-110 transition-transform duration-300"
+          whileHover={{ rotate: 360, transition: { duration: 1 } }}
         >
-          <MessageCircle size={24} />
-        </button>
+          <Link to={`/users/${myId}/profile`}>
+            <motion.img
+              src={user.profileImage || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user.name)}`}
+              alt="Profile"
+              className="w-20 sm:w-24 h-20 sm:h-24 rounded-full border-4 border-neon-blue-500 shadow-[0_0_15px_#00ffff] object-cover cursor-pointer"
+              whileHover={{ scale: 1.2, boxShadow: '0 0 25px #00ffff' }}
+              transition={{ duration: 0.3 }}
+              onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/thumbs/svg?seed=fallback-${myId}`; }}
+            />
+          </Link>
+        </motion.div>
+        <motion.h2
+          variants={itemVariants}
+          className="text-3xl sm:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-neon-green-400 to-neon-pink-500 drop-shadow-[0_0_10px_#ff00ff]"
+        >
+          Welcome, {user.name}
+        </motion.h2>
+        <motion.h1
+          variants={itemVariants}
+          className="text-xl sm:text-2xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-neon-blue-300 to-neon-purple-500 hidden sm:block"
+        >
+          SkillSync: Exchange skills, ignite growth!
+        </motion.h1>
+      </motion.div>
 
-        {/* Footer */}
-        <footer className="p-6 bg-gray-200 dark:bg-gray-800 border-t dark:border-gray-700">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow mb-4">
-              <p className="text-gray-600 dark:text-gray-300 italic">
-                "Hey, want to swap skills? Try chatting with someone now!"
-              </p>
-              <div className="mt-2 flex space-x-4">
-                <a href="/chat" className="text-blue-600 hover:underline">
-                  Start a Chat
-                </a>
-                <a href="/leaderboard" className="text-blue-600 hover:underline">
-                  View Leaderboard
-                </a>
-                <a href="/profile" className="text-blue-600 hover:underline">
-                  Update Profile
-                </a>
-              </div>
+      <motion.div
+        variants={cardVariants}
+        className="bg-gradient-to-br from-purple-800/80 to-indigo-900/80 rounded-2xl p-4 border-2 border-neon-blue-500 shadow-[0_0_20px_#00ffff] transform hover:scale-105 transition-transform duration-300 w-full mx-auto max-w-4xl mt-6"
+      >
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-neon-green-400 mb-3">Top 3 Leaders</h2>
+        {users.length === 0 ? (
+          <motion.p className="text-center text-gray-300 text-sm sm:text-base" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+            No users found.
+          </motion.p>
+        ) : (
+          <div className="space-y-4">
+            {users.map((user, index) => (
+              <motion.div
+                key={user._id}
+                variants={itemVariants}
+                className={`group relative flex flex-col sm:flex-row items-center justify-between py-2 px-3 rounded-xl bg-gradient-to-br from-purple-800/80 to-indigo-900/80 border-l-4 ${
+                  index === 0 ? 'border-yellow-400' : index === 1 ? 'border-gray-400' : 'border-orange-400'
+                }`}
+                whileHover={{ scale: 1.05, boxShadow: '0 0 15px #fff', zIndex: 10 }}
+                style={{ overflow: 'visible' }}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`text-xl sm:text-2xl font-bold ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-gray-400' : 'text-orange-400'}`}>
+                    #{index + 1}
+                  </span>
+                  <motion.img
+                    src={user.profileImage || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user.name)}`}
+                    alt={user.name}
+                    className="w-8 sm:w-10 h-8 sm:h-10 rounded-full border-2 border-neon-blue-500"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ duration: 0.3 }}
+                    loading="lazy"
+                    onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/thumbs/svg?seed=fallback-${user._id}`; }}
+                  />
+                  <div className="truncate">
+                    <span className="font-semibold text-neon-blue-300 text-sm sm:text-base">{user.name}</span>
+                    <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-neon-green-400 text-sm sm:text-base">{user.points} pts</p>
+                  <span className={`inline-block text-xs sm:text-sm px-2 py-1 rounded-full ${badgeStyles[user.badge] || 'bg-gray-700 text-gray-300'}`}>
+                    {user.badge}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+
+      <div className="flex flex-col sm:flex-row gap-6 mt-6">
+        <motion.div
+          variants={cardVariants}
+          className="bg-gradient-to-br from-indigo-900/80 to-purple-800/80 rounded-2xl p-4 border-2 border-neon-pink-500 shadow-[0_0_20px_#ff00ff] transform hover:scale-105 transition-transform duration-300 w-full sm:w-1/2 mx-auto max-w-md"
+          style={{ overflow: 'visible' }}
+        >
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-neon-pink-400 mb-3">Recent Sessions</h2>
+          {sessions.filter((s) => s.status === 'done' && s.pastRoom).length === 0 ? (
+            <motion.p className="text-center text-gray-300 text-sm sm:text-base" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+              No past sessions found.
+            </motion.p>
+          ) : (
+            <div className="space-y-4">
+              {sessions
+                .filter((s) => s.status === 'done' && s.pastRoom)
+                .slice(0, 3)
+                .map((s, index) => (
+                  <PastRoomCard key={s._id} session={s} index={index} myId={myId} />
+                ))}
             </div>
-            <div className="flex justify-between items-center">
-              <p>&copy; 2025 SkillSwap. All rights reserved.</p>
-              <div className="flex space-x-4">
-                <a href="/about" className="text-blue-600 hover:underline">
-                  About
-                </a>
-                <a href="/contact" className="text-blue-600 hover:underline">
-                  Contact
-                </a>
-                <a href="/privacy" className="text-blue-600 hover:underline">
-                  Privacy
-                </a>
-              </div>
+          )}
+        </motion.div>
+
+        <motion.div
+          variants={cardVariants}
+          className="bg-gradient-to-br from-teal-900/80 to-green-900/80 rounded-2xl p-4 border-2 border-neon-green-500 shadow-[0_0_20px_#00ff00] transform hover:scale-105 transition-transform duration-300 w-full sm:w-1/2 mx-auto max-w-md"
+          style={{ overflow: 'visible' }}
+        >
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-neon-green-400 mb-3">Quick Tips</h2>
+          <AnimatePresence>
+            <div className="space-y-4">
+              {currentTips.map((tip, index) => (
+                <motion.div
+                  key={`${tip}-${index}`}
+                  variants={tipVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="bg-gradient-to-br from-green-800/80 to-teal-800/80 rounded-xl p-3 shadow-md"
+                  style={{ overflow: 'visible' }}
+                >
+                  <p className="text-sm sm:text-base text-gray-200">{tip}</p>
+                </motion.div>
+              ))}
+            </div>
+          </AnimatePresence>
+        </motion.div>
+      </div>
+
+      <motion.div
+        variants={cardVariants}
+        className="bg-gradient-to-br from-blue-900/80 to-cyan-900/80 rounded-3xl p-6 border-4 border-neon-blue-500 shadow-[0_0_30px_#00ffff] transform hover:scale-110 transition-transform duration-300 w-full mx-auto max-w-4xl mt-6"
+      >
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-neon-blue-400 mb-4">Community Highlights</h2>
+        <motion.div
+          variants={cardVariants}
+          className="bg-gradient-to-br from-cyan-800/80 to-blue-800/80 rounded-2xl p-4"
+        >
+          <div className="flex flex-col sm:flex-row justify-around items-center gap-4">
+            <div className="text-center">
+              <p className="text-lg sm:text-xl text-gray-300">Total Posts</p>
+              <p className="text-2xl sm:text-3xl font-bold text-neon-blue-300">{communityStats.totalPosts}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg sm:text-xl text-gray-300">Active Users Today</p>
+              <p className="text-2xl sm:text-3xl font-bold text-neon-blue-300">{communityStats.activeUsersToday}</p>
             </div>
           </div>
-        </footer>
-      </div>
-    </ErrorBoundary>
+        </motion.div>
+      </motion.div>
+
+      <motion.div
+        variants={cardVariants}
+        className="bg-gradient-to-br from-pink-900/80 to-red-900/80 rounded-2xl p-4 border-2 border-neon-pink-500 shadow-[0_0_20px_#ff00ff] transform hover:scale-105 transition-transform duration-300 w-full mx-auto max-w-4xl mt-6"
+      >
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-neon-pink-400 mb-3">What People Say About You</h2>
+        {feedbacks.length === 0 ? (
+          <motion.p
+            className="text-center text-gray-300 text-sm sm:text-base"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            No feedback yet.
+          </motion.p>
+        ) : (
+          <div className="space-y-4">
+            {feedbacks.map((fb, index) => (
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                className="flex items-center gap-3 py-2 px-3 rounded-xl bg-gradient-to-br from-red-800/80 to-pink-800/80"
+                style={{ overflow: 'visible' }}
+              >
+                <Star className="w-4 sm:w-5 h-4 sm:h-5 text-yellow-400 fill-current" />
+                <div className="flex-1">
+                  <p className="text-sm sm:text-base text-neon-pink-300 font-semibold">
+                    {fb.from}: Rating: {fb.rating} Star{fb.rating > 1 ? 's' : ''}, Feedback: "{fb.comment}"
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+    </div>
   );
 };
 

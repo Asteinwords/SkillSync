@@ -26,22 +26,43 @@ const server = http.createServer(app);
 const hostSocketMap = new Map();
 const socketUserMap = new Map();
 
+// Define allowed origins
+const allowedOrigins = [
+  process.env.CLIENT_URL || 'http://localhost:5173',
+  'https://superlative-faun-4fb28d.netlify.app',
+];
+
 const corsOptions = {
-  origin: 'https://superlative-faun-4fb28d.netlify.app' || 'http://localhost:5173', // Replace with your frontend URL
+  origin: (origin, callback) => {
+    console.log(`[${new Date().toISOString()}] CORS Origin Check:`, { origin });
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`[${new Date().toISOString()}] CORS Blocked:`, { origin });
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true, // Allow credentials (e.g., Authorization header)
+  credentials: true,
 };
 
 app.use(cors(corsOptions));
 
 const io = new Server(server, {
   cors: {
-    origin: 'https://superlative-faun-4fb28d.netlify.app' || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      console.log(`[${new Date().toISOString()}] Socket.IO CORS Origin Check:`, { origin });
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`[${new Date().toISOString()}] Socket.IO CORS Blocked:`, { origin });
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   },
 });
-
 
 // Attach chat-related socket handlers
 setupChatSocket(io, socketUserMap);
@@ -84,7 +105,6 @@ const leaveRoomLogic = async (roomId, userId) => {
 };
 
 // Middlewares
-app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

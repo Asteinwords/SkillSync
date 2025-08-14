@@ -7,7 +7,7 @@
 // import { io } from 'socket.io-client';
 // import Stars from '../assets/stars.svg';
 
-// const socket = io('https://skillsync-cvqg.onrender.com');
+// const socket = io('http://localhost:5000');
 
 // import {
 //   getActiveRooms,
@@ -86,7 +86,7 @@
 
 //     const generatedRoomId = `${roomName}-${Date.now()}`;
 //     try {
-//       const res = await axios.post('https://skillsync-cvqg.onrender.com/api/rooms/create', {
+//       const res = await axios.post('http://localhost:5000/api/rooms/create', {
 //         roomId: generatedRoomId,
 //         password: createPassword,
 //         userId,
@@ -138,7 +138,7 @@
 
 //   const handleDeleteHistory = async (roomId) => {
 //     try {
-//       await axios.delete(`https://skillsync-cvqg.onrender.com/api/rooms/history/${roomId}/${userId}`);
+//       await axios.delete(`http://localhost:5000/api/rooms/history/${roomId}/${userId}`);
 //       await fetchRooms();
 //       toast.success('Deleted from history');
 //     } catch (err) {
@@ -480,7 +480,7 @@
 //     return;
 //   }
 
-//   const newSocket = io('https://skillsync-cvqg.onrender.com', { forceNew: true });
+//   const newSocket = io('http://localhost:5000', { forceNew: true });
 //   setSocket(newSocket);
 
 //   fetchAllRooms();
@@ -530,7 +530,7 @@
 //   //     return;
 //   //   }
 
-//   //   const newSocket = io('https://skillsync-cvqg.onrender.com', { forceNew: true });
+//   //   const newSocket = io('http://localhost:5000', { forceNew: true });
 //   //   setSocket(newSocket);
 
 //   //   fetchRooms();
@@ -589,7 +589,7 @@
 //     const generatedRoomId = `${roomName}-${Date.now()}`;
 //     try {
 //       console.log('[Room] Creating room:', { roomId: generatedRoomId, userId });
-//       const res = await axios.post('https://skillsync-cvqg.onrender.com/api/rooms/create', {
+//       const res = await axios.post('http://localhost:5000/api/rooms/create', {
 //         roomId: generatedRoomId,
 //         password: createPassword,
 //         userId,
@@ -654,7 +654,7 @@
 //   const handleDeleteHistory = async (roomId) => {
 //     try {
 //       console.log('[Room] Deleting history:', { roomId, userId });
-//       await axios.delete(`https://skillsync-cvqg.onrender.com/api/rooms/history/${roomId}/${userId}`);
+//       await axios.delete(`http://localhost:5000/api/rooms/history/${roomId}/${userId}`);
 //       await fetchRooms();
 //       toast.success('Deleted from history');
 //     } catch (err) {
@@ -1301,7 +1301,7 @@ export default Room;
 //       return;
 //     }
 
-//     const newSocket = io('https://skillsync-cvqg.onrender.com', { forceNew: true });
+//     const newSocket = io('http://localhost:5000', { forceNew: true });
 //     setSocket(newSocket);
 
 //     // Initial fetch of all rooms
@@ -1373,7 +1373,7 @@ export default Room;
 //     const generatedRoomId = `${roomName}-${Date.now()}`;
 //     try {
 //       console.log('[Room] Creating room:', { roomId: generatedRoomId, userId });
-//       const res = await axios.post('https://skillsync-cvqg.onrender.com/api/rooms/create', {
+//       const res = await axios.post('http://localhost:5000/api/rooms/create', {
 //         roomId: generatedRoomId,
 //         password: createPassword,
 //         userId,
@@ -1438,7 +1438,7 @@ export default Room;
 //   const handleDeleteHistory = async (roomId) => {
 //     try {
 //       console.log('[Room] Deleting history:', { roomId, userId });
-//       await axios.delete(`https://skillsync-cvqg.onrender.com/api/rooms/history/${roomId}/${userId}`);
+//       await axios.delete(`http://localhost:5000/api/rooms/history/${roomId}/${userId}`);
 //       await fetchAllRooms();
 //       toast.success('Deleted from history');
 //     } catch (err) {
