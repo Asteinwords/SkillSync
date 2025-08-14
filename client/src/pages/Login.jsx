@@ -12,31 +12,31 @@ const Login = () => {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const { data } = await API.post('/users/login', form);
+  try {
+    const { data } = await API.post('/users/login', form);
 
-      const { token, refreshToken } = data;
-      if (!token || !refreshToken) {
-        throw new Error('Invalid login response');
-      }
-
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
-      toast.success('🎉 Login successful');
-      navigate('/dashboard');
-    } catch (err) {
-      const msg = err.response?.data?.message || 'Login failed. Try again.';
-      toast.error(`❌ ${msg}`);
-      console.error('Login error:', err);
-    } finally {
-      setLoading(false);
+    const { token, refreshToken, _id } = data;
+    if (!token || !refreshToken || !_id) {
+      throw new Error('Invalid login response');
     }
-  };
 
+    localStorage.setItem('token', token);
+    localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem('userId', _id); // Store userId
+    toast.success('🎉 Login successful');
+    navigate('/dashboard');
+  } catch (err) {
+    const msg = err.response?.data?.message || 'Login failed. Try again.';
+    toast.error(`❌ ${msg}`);
+    console.error('Login error:', err);
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen grid md:grid-cols-2 font-body">
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white flex flex-col items-center justify-center p-8 text-center">

@@ -26,12 +26,22 @@ const server = http.createServer(app);
 const hostSocketMap = new Map();
 const socketUserMap = new Map();
 
+const corsOptions = {
+  origin: process.env.CLIENT_URL || 'http://localhost:5173', // Replace with your frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true, // Allow credentials (e.g., Authorization header)
+};
+
+app.use(cors(corsOptions));
+
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
+
 
 // Attach chat-related socket handlers
 setupChatSocket(io, socketUserMap);
