@@ -478,6 +478,13 @@ const Navbar = () => {
                   ) : (
                     <>
                       <Link
+                        to="/webpage"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Home
+                      </Link>
+                      <Link
                         to="/dashboard"
                         className="text-lg hover:text-blue-300 transition-colors"
                         onClick={() => setIsSidebarOpen(false)}

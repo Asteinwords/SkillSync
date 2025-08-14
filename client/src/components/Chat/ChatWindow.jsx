@@ -182,16 +182,16 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
   });
 
   if (isLoading || !currentUser || !activeUser) {
-    return <div className="flex-1 p-6 text-gray-600 text-lg sm:flex-1 sm:p-6 sm:text-gray-600 sm:text-lg">🔄 Loading chat...</div>;
+    return <div className="flex-1 p-6 text-gray-600 text-lg">🔄 Loading chat...</div>;
   }
 
   return (
-    <div className="mt-6 flex-1 flex flex-col bg-gradient-to-b from-slate-100 to-white sm:mt-6 sm:flex-1 sm:flex sm:flex-col sm:bg-gradient-to-b sm:from-slate-100 sm:to-white">
-      <div className="p-4 bg-blue-600 text-white font-semibold text-lg shadow-sm flex justify-between items-center relative sm:p-4 sm:bg-blue-600 sm:text-white sm:font-semibold sm:text-lg sm:shadow-sm sm:flex sm:justify-between sm:items-center sm:relative">
+    <div className="mt-0 flex-1 flex flex-col bg-gradient-to-b from-slate-100 to-white">
+      <div className="p-4 bg-blue-600 text-white font-semibold text-lg shadow-sm flex justify-between items-center relative">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveUser(null)}
-            className="sm:hidden text-white p-2"
+            className="text-white p-2"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
@@ -201,7 +201,7 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
           <div className="relative">
             <button
               onClick={() => setShowDeleteOptions(!showDeleteOptions)}
-              className="text-sm bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white sm:text-sm sm:bg-red-500 sm:hover:bg-red-600 sm:px-3 sm:py-1 sm:rounded sm:text-white"
+              className="text-sm bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white"
             >
               🗑 Delete ({selectedMessages.length})
             </button>
@@ -211,11 +211,11 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg border border-gray-200 z-50 sm:absolute sm:right-0 sm:mt-2 sm:w-48 sm:bg-white sm:shadow-lg sm:rounded-lg sm:border sm:border-gray-200 sm:z-50"
+                  className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg border border-gray-200 z-50"
                 >
                   <button
                     onClick={() => deleteMessages('forMe')}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 sm:w-full sm:text-left sm:px-4 sm:py-2 sm:text-sm sm:text-gray-700 sm:hover:bg-gray-100"
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
                     Delete for Me
                   </button>
@@ -225,7 +225,7 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
                       isDeleteForEveryoneDisabled
                         ? 'text-gray-400 cursor-not-allowed'
                         : 'text-gray-700 hover:bg-gray-100'
-                    } sm:w-full sm:text-left sm:px-4 sm:py-2 sm:text-sm sm:text-gray-700 sm:hover:bg-gray-100`}
+                    }`}
                     disabled={isDeleteForEveryoneDisabled}
                   >
                     Delete for Everyone
@@ -237,7 +237,7 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
         )}
       </div>
 
-      <div className="flex-1 p-4 overflow-y-auto bg-white space-y-3 sm:flex-1 sm:p-4 sm:overflow-y-auto sm:bg-white sm:space-y-3">
+      <div className="flex-1 p-4 overflow-y-auto bg-white space-y-3">
         {messages.map((m, i) => {
           const isFromCurrentUser = m.from === currentUser.user._id;
           const isDeletedForCurrentUser = m.deletedBy?.includes(currentUser.user._id);
@@ -249,7 +249,7 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
               key={i}
               ref={scrollRef}
               onClick={() => m._id && toggleSelect(m._id)}
-              className={`flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'} sm:flex sm:${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`px-4 py-2 rounded-xl shadow max-w-[70%] text-sm cursor-pointer
@@ -258,16 +258,12 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
                     isFromCurrentUser
                       ? 'bg-blue-500 text-white rounded-tr-sm'
                       : 'bg-gray-200 text-gray-800 rounded-tl-sm'
-                  } sm:px-4 sm:py-2 sm:rounded-xl sm:shadow sm:max-w-[70%] sm:text-sm sm:cursor-pointer sm:${selectedMessages.includes(m._id) ? 'ring-2 ring-red-400' : ''} sm:${
-                    isFromCurrentUser
-                      ? 'bg-blue-500 text-white sm:rounded-tr-sm'
-                      : 'bg-gray-200 text-gray-800 sm:rounded-tl-sm'
                   }`}
               >
                 <p className={m.isDeleted ? 'italic text-gray-400' : ''}>
                   {m.isDeleted ? 'Message deleted' : m.message}
                 </p>
-                <p className="text-[10px] mt-1 text-right opacity-70 sm:text-[10px] sm:mt-1 sm:text-right sm:opacity-70">
+                <p className="text-[10px] mt-1 text-right opacity-70">
                   {new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -277,13 +273,13 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
       </div>
 
       {showEmojiPicker && (
-        <div className="absolute bottom-24 left-4 z-50 sm:absolute sm:bottom-24 sm:left-4 sm:z-50">
+        <div className="absolute bottom-24 left-4 z-50">
           <EmojiPicker onEmojiClick={handleEmojiClick} />
         </div>
       )}
 
-      <div className="p-2 bg-white border-t shadow-inner flex gap-2 items-center sticky bottom-0 sm:p-4 sm:bg-white sm:border-t sm:shadow-inner sm:flex sm:gap-2 sm:items-center sm:sticky sm:bottom-0">
-        <button onClick={() => setShowEmojiPicker((prev) => !prev)} className="text-2xl px-2 sm:text-2xl sm:px-2">
+      <div className="p-2 bg-white border-t shadow-inner flex gap-2 items-center sticky bottom-0">
+        <button onClick={() => setShowEmojiPicker((prev) => !prev)} className="text-2xl px-2">
           😊
         </button>
         <input
@@ -292,7 +288,7 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
           onChange={(e) => setMsg(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
           placeholder="Type a message..."
-          className="flex-1 border border-blue-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:flex-1 sm:border sm:border-blue-300 sm:rounded-lg sm:px-4 sm:py-2 sm:focus:outline-none sm:focus:ring-2 sm:focus:ring-blue-500"
+          className="flex-1 border border-blue-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={sendMessage}

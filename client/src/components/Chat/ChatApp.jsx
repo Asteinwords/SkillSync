@@ -127,17 +127,17 @@ const ChatApp = () => {
   }
 
   return (
-    <motion.div className="flex h-screen bg-gradient-to-br from-blue-200 via-purple-100 to-pink-200 relative sm:flex sm:bg-gradient-to-br sm:from-blue-200 sm:via-purple-100 sm:to-pink-200">
+    <motion.div className="flex h-screen bg-gradient-to-br from-blue-200 via-purple-100 to-pink-200 relative">
       <img
         src={Stars}
         alt="Stars"
-        className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none sm:absolute sm:inset-0 sm:w-full sm:h-full sm:object-cover sm:opacity-20 sm:z-0 sm:pointer-events-none"
+        className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none"
       />
-      {/* Mobile: Show Sidebar or ChatWindow based on activeUser */}
-      <div className={`${activeUser ? 'hidden sm:flex' : 'flex sm:flex'} h-full`}>
+      {/* Mobile: Show Sidebar or ChatWindow exclusively; Desktop: Show both */}
+      <div className={`h-full ${activeUser ? 'hidden sm:flex sm:w-72' : 'flex w-full sm:w-72'}`}>
         <Sidebar contacts={contacts} onUserSelect={setActiveUser} unreadCounts={unreadCounts} />
       </div>
-      <div className={`${activeUser ? 'flex sm:flex' : 'hidden sm:flex'} flex-1 h-full`}>
+      <div className={`h-full ${activeUser ? 'flex w-full sm:flex-1' : 'hidden sm:flex sm:flex-1'}`}>
         <ChatWindow activeUser={activeUser} userId={userId} setActiveUser={setActiveUser} />
       </div>
     </motion.div>
