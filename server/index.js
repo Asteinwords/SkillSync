@@ -29,7 +29,7 @@ const socketUserMap = new Map();
 // Define allowed origins
 const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:5173',
-  'https://superlative-faun-4fb28d.netlify.app',
+  'https://astonishing-genie-c725b3.netlify.app/',
 ];
 
 const corsOptions = {
