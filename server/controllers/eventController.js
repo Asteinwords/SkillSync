@@ -1,6 +1,5 @@
 const Event = require('../models/eventModel');
 
-// GET /api/events - Fetch upcoming events
 exports.getEvents = async (req, res) => {
   try {
     console.log(`[${new Date().toISOString()}] GET /api/events - Fetching events`);
@@ -12,7 +11,6 @@ exports.getEvents = async (req, res) => {
   }
 };
 
-// POST /api/events - Create an event (admin only, for simplicity)
 exports.createEvent = async (req, res) => {
   try {
     const { title, description, date, type } = req.body;

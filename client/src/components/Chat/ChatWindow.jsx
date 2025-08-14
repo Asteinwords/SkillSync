@@ -1,44 +1,51 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import socket from '../../services/socket';
 import API from '../../services/api';
 import EmojiPicker from 'emoji-picker-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ChatWindow = ({ activeUser }) => {
+const ChatWindow = ({ activeUser, userId }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [msg, setMsg] = useState('');
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showDeleteOptions, setShowDeleteOptions] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const scrollRef = useRef();
   const roomIdRef = useRef('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const id = localStorage.getItem('userId');
-      const token = localStorage.getItem('token');
-      if (!id || !token) {
-        console.error('⚠️ Missing userId or token in localStorage');
-        return;
-      }
+    const token = localStorage.getItem('token');
+    if (!token || !userId) {
+      console.error('⚠️ Missing token or userId, redirecting to login');
+      navigate('/login');
+      return;
+    }
 
+    const fetchUser = async () => {
       try {
-        const { data } = await API.get(`/users/${id}/profile`, {
+        const { data } = await API.get(`/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setCurrentUser(data);
+        setCurrentUser({ user: { _id: data._id, name: data.name, email: data.email } });
+        setIsLoading(false);
       } catch (err) {
-        console.error('❌ Failed to fetch current user:', err.message);
+        console.error('❌ Failed to fetch current user:', err.response?.data?.message || err.message);
         alert('Error fetching user. Please login again.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        navigate('/login');
       }
     };
 
     fetchUser();
-  }, []);
+  }, [userId, navigate]);
 
   useEffect(() => {
-    if (!currentUser || !activeUser) return;
+    if (!currentUser || !activeUser || !userId) return;
 
     const senderId = currentUser.user?._id;
     const receiverId = activeUser._id;
@@ -58,7 +65,7 @@ const ChatWindow = ({ activeUser }) => {
       .then((res) => {
         setMessages(res.data || []);
       })
-      .catch((err) => console.error('❌ Error loading chat:', err.message));
+      .catch((err) => console.error('❌ Error loading chat:', err.response?.data?.message || err.message));
 
     API.post(
       '/chat/mark-read',
@@ -69,7 +76,7 @@ const ChatWindow = ({ activeUser }) => {
         console.log(`✅ Messages marked as read for room ${roomId} by ${senderId}`);
         socket.emit('messagesRead', { userId: receiverId, readerId: senderId });
       })
-      .catch((err) => console.error('❌ Error marking messages as read:', err.message));
+      .catch((err) => console.error('❌ Error marking messages as read:', err.response?.data?.message || err.message));
 
     const receiveHandler = (data) => {
       if (data.roomId === roomIdRef.current) {
@@ -80,7 +87,7 @@ const ChatWindow = ({ activeUser }) => {
 
     socket.on('receiveMessage', receiveHandler);
     return () => socket.off('receiveMessage', receiveHandler);
-  }, [currentUser, activeUser]);
+  }, [currentUser, activeUser, userId]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -124,9 +131,9 @@ const ChatWindow = ({ activeUser }) => {
       return alert('No messages selected');
     }
 
-    const userId = currentUser?.user?._id;
+    const senderId = currentUser?.user?._id;
     const token = localStorage.getItem('token');
-    if (!userId || !token) {
+    if (!senderId || !token) {
       console.error('⚠️ Missing userId or token for deletion');
       return alert('Authentication error. Please login again.');
     }
@@ -134,7 +141,7 @@ const ChatWindow = ({ activeUser }) => {
     try {
       const endpoint = type === 'forMe' ? '/chat/messages/delete-for-me' : '/chat/messages/delete-for-everyone';
       const response = await API.delete(endpoint, {
-        data: { messageIds: selectedMessages, userId },
+        data: { messageIds: selectedMessages, userId: senderId },
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -143,14 +150,14 @@ const ChatWindow = ({ activeUser }) => {
           setMessages((prev) =>
             prev.map((m) =>
               selectedMessages.includes(m._id)
-                ? { ...m, deletedBy: [...(m.deletedBy || []), userId] }
+                ? { ...m, deletedBy: [...(m.deletedBy || []), senderId] }
                 : m
             )
           );
-          console.log(`✅ Messages ${selectedMessages} deleted for user ${userId}`);
+          console.log(`✅ Messages ${selectedMessages} deleted for user ${senderId}`);
         } else {
           setMessages((prev) => prev.filter((m) => !selectedMessages.includes(m._id)));
-          console.log(`✅ Messages ${selectedMessages} deleted for everyone by user ${userId}`);
+          console.log(`✅ Messages ${selectedMessages} deleted for everyone by user ${senderId}`);
         }
         setSelectedMessages([]);
         setShowDeleteOptions(false);
@@ -165,17 +172,16 @@ const ChatWindow = ({ activeUser }) => {
     setMsg((prev) => prev + emojiData.emoji);
   };
 
-  // Check if any selected message is older than 24 hours or not sent by the current user
   const isDeleteForEveryoneDisabled = selectedMessages.some((id) => {
     const message = messages.find((m) => m._id === id);
     if (!message) return true;
-    const isNotSender = message.from !== currentUser.user._id;
+    const isNotSender = message.from !== currentUser?.user?._id;
     const isOlderThan24Hours = new Date() - new Date(message.time) > 24 * 60 * 60 * 1000;
     return isNotSender || isOlderThan24Hours;
   });
 
-  if (!currentUser || !activeUser) {
-    return <div className="flex-1 p-6 text-gray-600 text-lg">👈 Select a user to start chatting.</div>;
+  if (isLoading || !currentUser || !activeUser) {
+    return <div className="flex-1 p-6 text-gray-600 text-lg">🔄 Loading chat...</div>;
   }
 
   return (

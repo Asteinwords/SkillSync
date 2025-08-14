@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import Sidebar from './SideBar';
+import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
 import API from '../../services/api';
 import socket from '../../services/socket';
@@ -11,13 +11,39 @@ const ChatApp = () => {
   const [contacts, setContacts] = useState([]);
   const [activeUser, setActiveUser] = useState(null);
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [userId, setUserId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
     const token = localStorage.getItem('token');
-    if (!userId || !token) {
-      console.error('⚠️ Missing userId or token in localStorage');
+    if (!token) {
+      console.log('⚠️ No token in localStorage, redirecting to login');
+      navigate('/login');
+      return;
+    }
+
+    const fetchUserId = async () => {
+      try {
+        const { data } = await API.get('/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUserId(data._id);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('❌ Error fetching user ID:', err.response?.data?.message || err.message);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        navigate('/login');
+      }
+    };
+    fetchUserId();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!userId) {
+      console.log('⚠️ Waiting for userId to proceed');
       return;
     }
 
@@ -38,6 +64,7 @@ const ChatApp = () => {
 
     const fetchData = async () => {
       try {
+        const token = localStorage.getItem('token');
         const [contactsRes, unreadRes] = await Promise.all([
           API.get('/users/mutual-followers', {
             headers: { Authorization: `Bearer ${token}` },
@@ -55,7 +82,7 @@ const ChatApp = () => {
           if (preselected) setActiveUser(preselected);
         }
       } catch (err) {
-        console.error('❌ Error fetching data:', err.message);
+        console.error('❌ Error fetching data:', err.response?.data?.message || err.message);
       }
     };
 
@@ -66,10 +93,9 @@ const ChatApp = () => {
       socket.off('connect_error');
       socket.off('error');
     };
-  }, [location.state]);
+  }, [location.state, userId]);
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
     if (!userId) return;
 
     socket.on('newMessageNotification', ({ from, to }) => {
@@ -82,11 +108,11 @@ const ChatApp = () => {
       }
     });
 
-    socket.on('messagesRead', ({ userId }) => {
-      console.log(`✅ Messages read for user ${userId}`);
+    socket.on('messagesRead', ({ userId: senderId }) => {
+      console.log(`✅ Messages read for user ${senderId}`);
       setUnreadCounts((prev) => ({
         ...prev,
-        [userId]: 0,
+        [senderId]: 0,
       }));
     });
 
@@ -94,7 +120,11 @@ const ChatApp = () => {
       socket.off('newMessageNotification');
       socket.off('messagesRead');
     };
-  }, []);
+  }, [userId]);
+
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center text-gray-600">🔄 Loading...</div>;
+  }
 
   return (
     <motion.div className="flex h-screen bg-gradient-to-br from-blue-200 via-purple-100 to-pink-200 relative">
@@ -104,7 +134,7 @@ const ChatApp = () => {
         className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none"
       />
       <Sidebar contacts={contacts} onUserSelect={setActiveUser} unreadCounts={unreadCounts} />
-      <ChatWindow activeUser={activeUser} />
+      <ChatWindow activeUser={activeUser} userId={userId} />
     </motion.div>
   );
 };

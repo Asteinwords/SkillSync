@@ -73,7 +73,7 @@ const Heatmap = ({ streak }) => {
 
   return (
     <div className="overflow-x-auto max-w-full px-2 sm:px-4 py-3 bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/50 shadow-sm scrollbar-none sm:scrollbar-none">
-      <style jsx>{`
+      <style>{`
         .scrollbar-none::-webkit-scrollbar {
           display: none;
         }
@@ -129,71 +129,104 @@ const Profile = () => {
   const [follows, setFollows] = useState({});
   const [mutuals, setMutuals] = useState({});
   const [streakData, setStreakData] = useState({ totalDays: 0, maxStreak: 0, currentStreak: 0, visitHistory: [] });
+  const [loggedInUserId, setLoggedInUserId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const token = localStorage.getItem('token');
-  const loggedInUserId = localStorage.getItem('userId');
 
-useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      const { data: profileData } = await API.get(`/users/${id}/profile`);
-      console.log('API Response for user', id, ':', profileData);
-      setProfile(profileData);
-
-      const streak = profileData.streak || 0;
-      const points = profileData.points || 0;
-      const visits = profileData.visits || 0;
-      console.log('Streak for user', id, ':', streak, 'Points:', points, 'Visits:', visits);
-
-      const visitHistory = [];
-      const today = moment().startOf('day');
-      for (let i = 0; i < streak; i++) {
-        visitHistory.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
-      }
-      setStreakData({
-        totalDays: streak,
-        maxStreak: Math.max(streak, streak || 0),
-        currentStreak: streak,
-        visitHistory,
-      });
-    } catch (err) {
-      console.error('Error fetching profile for user', id, ':', err);
-      alert('Failed to load profile');
+  useEffect(() => {
+    if (!token) {
+      console.log('⚠️ No token in localStorage, redirecting to login');
+      navigate('/login');
+      return;
     }
-  };
 
-  const updateVisit = async () => {
-    if (token && loggedInUserId && loggedInUserId !== id) {
+    const fetchUserId = async () => {
       try {
-        await API.post(`/users/update-visit/${id}`, {}, {
+        const { data } = await API.get('/users/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log('Visit updated for user', id);
+        setLoggedInUserId(data._id);
+        setIsLoading(false);
       } catch (err) {
-        console.error('Error updating visit for user', id, ':', err);
+        console.error('❌ Error fetching user ID:', err.response?.data?.message || err.message);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        navigate('/login');
       }
-    }
-  };
+    };
 
-  const fetchFollowStatus = async () => {
-    if (token) {
+    fetchUserId();
+  }, [navigate, token]);
+
+  useEffect(() => {
+    if (!loggedInUserId && !isLoading) {
+      console.log('⚠️ Waiting for loggedInUserId to proceed');
+      return;
+    }
+
+    const fetchProfile = async () => {
       try {
-        const { data } = await API.get('/users/follow-status', {
+        const { data: profileData } = await API.get(`/users/${id}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log('Follow Status Response:', data);
-        setFollows(data.follows);
-        setMutuals(data.mutuals);
-      } catch (err) {
-        console.error('Error fetching follow status:', err);
-        alert('Failed to fetch follow status');
-      }
-    }
-  };
+        console.log('API Response for user', id, ':', profileData);
+        setProfile(profileData);
 
-  fetchProfile();
-  updateVisit();
-  fetchFollowStatus();
-}, [id, token, loggedInUserId]);
+        const streak = profileData.streak || 0;
+        const points = profileData.points || 0;
+        const visits = profileData.visits || 0;
+        console.log('Streak for user', id, ':', streak, 'Points:', points, 'Visits:', visits);
+
+        const visitHistory = [];
+        const today = moment().startOf('day');
+        for (let i = 0; i < streak; i++) {
+          visitHistory.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
+        }
+        setStreakData({
+          totalDays: streak,
+          maxStreak: Math.max(streak, streak || 0),
+          currentStreak: streak,
+          visitHistory,
+        });
+      } catch (err) {
+        console.error('Error fetching profile for user', id, ':', err);
+        alert('Failed to load profile');
+      }
+    };
+
+    const updateVisit = async () => {
+      if (token && loggedInUserId && loggedInUserId !== id) {
+        try {
+          await API.post(`/users/update-visit/${id}`, {}, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          console.log('Visit updated for user', id);
+        } catch (err) {
+          console.error('Error updating visit for user', id, ':', err);
+        }
+      }
+    };
+
+    const fetchFollowStatus = async () => {
+      if (token) {
+        try {
+          const { data } = await API.get('/users/follow-status', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          console.log('Follow Status Response:', data);
+          setFollows(data.follows);
+          setMutuals(data.mutuals);
+        } catch (err) {
+          console.error('Error fetching follow status:', err);
+          alert('Failed to fetch follow status');
+        }
+      }
+    };
+
+    fetchProfile();
+    updateVisit();
+    fetchFollowStatus();
+  }, [id, token, loggedInUserId, isLoading]);
 
   const sendFollowRequest = async () => {
     if (!token) {
@@ -238,7 +271,13 @@ useEffect(() => {
     }
   };
 
-  if (!profile) return <p className="text-center mt-20 text-2xl animate-pulse text-yellow-400">Loading...</p>;
+  if (isLoading || !loggedInUserId) {
+    return <p className="text-center mt-20 text-2xl animate-pulse text-yellow-400">Loading...</p>;
+  }
+
+  if (!profile) {
+    return <p className="text-center mt-20 text-2xl animate-pulse text-yellow-400">Loading...</p>;
+  }
 
   const { user, avgRating } = profile;
   console.log('Rendered Profile Data for user', id, ':', { user, avgRating, streakData });

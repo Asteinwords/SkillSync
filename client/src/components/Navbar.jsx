@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell } from 'lucide-react';
+import { Bell, Menu, X } from 'lucide-react';
+import { jwtDecode } from 'jwt-decode';
 import API from '../services/api';
 import socket from '../services/socket';
 import Stars from '../assets/stars.svg';
@@ -26,67 +27,90 @@ const dropdownVariants = {
   visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
 };
 
+const sidebarVariants = {
+  hidden: { x: '-100%', opacity: 0 },
+  visible: { x: 0, opacity: 1, transition: { duration: 0.3, ease: 'easeOut' } },
+  exit: { x: '-100%', opacity: 0, transition: { duration: 0.3, ease: 'easeIn' } },
+};
+
 const Navbar = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [authenticated, setAuthenticated] = useState(false);
+  const [userId, setUserId] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [messageNotifications, setMessageNotifications] = useState({});
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const token = localStorage.getItem('token');
-  const userId = localStorage.getItem('userId');
+  const getStorageItem = (key) => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn(`[${new Date().toISOString()}] localStorage unavailable:`, e.message);
+      return null;
+    }
+  };
 
   useEffect(() => {
-    setAuthenticated(!!token && !!userId);
-  }, [location, token, userId]);
-
-  useEffect(() => {
-    if (!userId || !token) {
-      console.error('⚠️ Missing userId or token in localStorage');
+    const token = getStorageItem('token');
+    if (!token) {
+      setAuthenticated(false);
+      setUserId(null);
       return;
     }
 
+    try {
+      const decoded = jwtDecode(token);
+      setUserId(decoded.id);
+      setAuthenticated(true);
+      console.log(`[${new Date().toISOString()}] JWT decoded, userId: ${decoded.id}`);
+    } catch (err) {
+      console.error(`[${new Date().toISOString()}] ❌ Error decoding JWT:`, err.message);
+      setAuthenticated(false);
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!userId || !getStorageItem('token')) {
+      console.log(`[${new Date().toISOString()}] ⚠️ Missing userId or token, skipping socket registration`);
+      return;
+    }
+
+    socket.connect();
     socket.emit('registerUser', { userId });
 
     socket.on('connect', () => {
-      console.log(`✅ Socket connected for user ${userId}`);
-      socket.emit('registerUser', { userId });
+      console.log(`[${new Date().toISOString()}] ✅ Socket connected for user ${userId}`);
     });
 
     socket.on('connect_error', (err) => {
-      console.error('❌ Socket connection error:', err.message);
+      console.error(`[${new Date().toISOString()}] ❌ Socket connection error:`, err.message);
     });
 
     socket.on('error', (message) => {
-      console.error('❌ Socket server error:', message);
+      console.error(`[${new Date().toISOString()}] ❌ Socket server error:`, message);
     });
 
     const fetchNotifications = async () => {
       try {
+        console.log(`[${new Date().toISOString()}] Fetching notifications for user ${userId}`);
         const { data } = await API.get('/users/follow-requests', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${getStorageItem('token')}` },
         });
         setNotifications(data || []);
+        console.log(`[${new Date().toISOString()}] Fetched ${data?.length || 0} notifications`);
       } catch (err) {
-        console.error('❌ Error loading follow requests:', err.message);
+        console.error(`[${new Date().toISOString()}] ❌ Error loading follow requests:`, err.response?.data?.message || err.message);
       }
     };
     fetchNotifications();
 
-    return () => {
-      socket.off('connect');
-      socket.off('connect_error');
-      socket.off('error');
-    };
-  }, [token, userId]);
-
-  useEffect(() => {
-    if (!userId) return;
-
     socket.on('newMessageNotification', (notification) => {
       if (notification.to === userId) {
-        console.log(`✅ Received notification from ${notification.from} for ${userId}`);
+        console.log(`[${new Date().toISOString()}] ✅ Received notification from ${notification.from} for ${userId}`);
         setMessageNotifications((prev) => {
           const existing = prev[notification.from] || {
             messages: [],
@@ -109,7 +133,7 @@ const Navbar = () => {
     });
 
     socket.on('messagesRead', ({ userId: senderId }) => {
-      console.log(`✅ Clearing notifications for sender ${senderId}`);
+      console.log(`[${new Date().toISOString()}] ✅ Clearing notifications for sender ${senderId}`);
       setMessageNotifications((prev) => {
         const newNotifications = { ...prev };
         delete newNotifications[senderId];
@@ -118,32 +142,42 @@ const Navbar = () => {
     });
 
     return () => {
+      console.log(`[${new Date().toISOString()}] Cleaning up socket listeners for user ${userId}`);
+      socket.disconnect();
+      socket.off('connect');
+      socket.off('connect_error');
+      socket.off('error');
       socket.off('newMessageNotification');
       socket.off('messagesRead');
     };
   }, [userId]);
 
   const handleLogout = () => {
+    console.log(`[${new Date().toISOString()}] Logging out user ${userId}`);
     localStorage.removeItem('token');
-    localStorage.removeItem('userId');
+    localStorage.removeItem('refreshToken');
     setAuthenticated(false);
+    setUserId(null);
     navigate('/');
   };
 
   const handleAccept = async (senderId) => {
     try {
+      console.log(`[${new Date().toISOString()}] Accepting follow request from ${senderId}`);
       await API.post(
         '/users/accept-follow',
         { senderId },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${getStorageItem('token')}` } }
       );
       setNotifications((prev) => prev.filter((n) => n._id !== senderId));
+      console.log(`[${new Date().toISOString()}] Follow request from ${senderId} accepted`);
     } catch (err) {
-      console.error('❌ Failed to accept follow request:', err.message);
+      console.error(`[${new Date().toISOString()}] ❌ Failed to accept follow request:`, err.response?.data?.message || err.message);
     }
   };
 
   const handleMessageClick = (from, senderName) => {
+    console.log(`[${new Date().toISOString()}] Navigating to chat with ${senderName} (${from})`);
     navigate('/chat', {
       state: { receiverId: from, receiverName: senderName },
     });
@@ -153,6 +187,7 @@ const Navbar = () => {
       return newNotifications;
     });
     setShowDropdown(false);
+    setIsSidebarOpen(false);
   };
 
   const notificationCount = notifications.length + Object.values(messageNotifications).reduce(
@@ -189,6 +224,19 @@ const Navbar = () => {
             </motion.span>
           </Link>
 
+          {/* Hamburger Menu for Mobile */}
+          <div className="md:hidden flex items-center">
+            <motion.button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="text-white p-2 focus:outline-none"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </motion.button>
+          </div>
+
+          {/* Desktop Navigation */}
           <motion.div
             className="hidden md:flex space-x-8 items-center text-sm"
             variants={navVariants}
@@ -238,11 +286,6 @@ const Navbar = () => {
                     Schedule
                   </Link>
                 </motion.div>
-                {/* <motion.div variants={linkVariants}>
-                  <Link to="/room" className="hover:text-blue-300 transition-colors">
-                    Rooms
-                  </Link>
-                </motion.div> */}
                 <motion.div variants={linkVariants}>
                   <Link to="/chat" className="hover:text-blue-300 transition-colors">
                     Chat
@@ -260,6 +303,7 @@ const Navbar = () => {
             )}
           </motion.div>
 
+          {/* Notification Bell */}
           {authenticated && (
             <div className="relative">
               <motion.button
@@ -332,6 +376,121 @@ const Navbar = () => {
             </div>
           )}
         </div>
+
+        {/* Mobile Sidebar */}
+        <AnimatePresence>
+          {isSidebarOpen && (
+            <motion.div
+              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <motion.div
+                className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-blue-900 to-indigo-900 text-white p-6 shadow-lg"
+                variants={sidebarVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <span className="text-xl font-bold">SkillSync</span>
+                  <motion.button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="text-white p-2"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <X className="w-6 h-6" />
+                  </motion.button>
+                </div>
+                <div className="flex flex-col space-y-4">
+                  {!authenticated ? (
+                    <>
+                      <Link
+                        to="/"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Home
+                      </Link>
+                      <Link
+                        to="/login"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Login
+                      </Link>
+                      <Link
+                        to="/register"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Signup
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        to="/dashboard"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
+                        to="/community"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Community
+                      </Link>
+                      <Link
+                        to="/leaderboard"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Leaderboard
+                      </Link>
+                      <Link
+                        to="/matches"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Matches
+                      </Link>
+                      <Link
+                        to="/schedule"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Schedule
+                      </Link>
+                      <Link
+                        to="/chat"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Chat
+                      </Link>
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setIsSidebarOpen(false);
+                        }}
+                        className="text-lg hover:text-red-300 transition-colors text-left"
+                      >
+                        Logout
+                      </button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.nav>
     </header>
   );

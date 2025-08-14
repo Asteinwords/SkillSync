@@ -14,8 +14,8 @@ const user = JSON.parse(localStorage.getItem('user')); // or use currentUser fro
 const socket = io('http://localhost:5000', {
   transports: ['websocket','polling'],
   withCredentials: true,
-  query: {
-    userId: user?._id || '',
+  auth: {
+    token: localStorage.getItem('token') || '',
   },
   reconnection: true,
   reconnectionAttempts: 5,

@@ -15,23 +15,23 @@ const {
   updateProfileImage,
   updateProfileInfo,
   updateStreak,
-  updateVisit, 
-  deleteUser,// Add this import
+  updateVisit,
+  deleteUser,
+  refreshToken,
 } = require('../controllers/userController');
-const { getMutualFollowers } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const User = require('../models/User');
 
 // Public Routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/refresh', refreshToken);
 router.put('/profile-info', protect, updateProfileInfo);
 
 // Protected Routes
 router.get('/profile', protect, (req, res) => {
   res.json({ message: 'Welcome, authenticated user!', user: req.user });
 });
-
 router.put('/skills', protect, updateSkills);
 router.get('/all', protect, getAllUsers);
 router.get('/matches', protect, getSkillMatches);
@@ -40,7 +40,7 @@ router.get('/me', protect, getProfile);
 router.get('/:id/profile', getUserProfile);
 router.post('/follow', protect, sendFollowRequest);
 router.post('/accept-follow', protect, acceptFollowRequest);
-router.post('/update-visit/:id', protect, updateVisit); // Add this route
+router.post('/update-visit/:id', protect, updateVisit);
 router.put('/profile-image', protect, updateProfileImage);
 router.post('/update-streak', protect, updateStreak);
 router.delete('/delete', protect, deleteUser);
@@ -54,7 +54,6 @@ router.get('/follow-requests', protect, async (req, res) => {
   }
 });
 
-// ✅ Follow status (whether you're following, and mutual follows)
 router.get('/follow-status', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -93,6 +92,15 @@ router.delete('/unfollow/:id', protect, async (req, res) => {
 });
 
 router.get('/search', protect, searchUsers);
-router.get('/mutual-followers', protect, getMutualFollowers);
+router.get('/mutual-followers', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate('following', 'name email profileImage');
+    const mutuals = user.following.filter(f => user.followers.includes(f._id));
+    res.json(mutuals);
+  } catch (err) {
+    console.error('❌ Error fetching mutual followers:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = router;

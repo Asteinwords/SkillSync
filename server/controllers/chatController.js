@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Message = require('../models/Message');
 const User = require('../models/User');
 
@@ -8,7 +9,7 @@ exports.getHistory = async (req, res) => {
     console.log(`✅ Fetched ${msgs.length} messages for room ${req.params.roomId}`);
     res.json(msgs);
   } catch (err) {
-    console.error('❌ Error fetching chat history:', err.message);
+    console.error(`[${new Date().toISOString()}] Error fetching chat history:`, err.message, err.stack);
     res.status(500).json({ message: 'Error loading chat history' });
   }
 };
@@ -23,14 +24,14 @@ exports.postMessage = async (req, res) => {
     console.log(`✅ Saved message in room ${roomId} from ${from} to ${to}`);
     res.json(saved);
   } catch (err) {
-    console.error('❌ Error saving message:', err.message);
+    console.error(`[${new Date().toISOString()}] Error saving message:`, err.message, err.stack);
     res.status(500).json({ message: 'Error saving message' });
   }
 };
 
 exports.getUnreadCount = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id.toString();
     const messages = await Message.find({ unreadBy: userId });
     const unreadCounts = {};
 
@@ -42,7 +43,7 @@ exports.getUnreadCount = async (req, res) => {
     console.log(`✅ Unread counts for user ${userId}:`, unreadCounts);
     res.json({ unreadCounts, total: messages.length });
   } catch (err) {
-    console.error('❌ Error fetching unread counts:', err.message);
+    console.error(`[${new Date().toISOString()}] Error fetching unread counts:`, err.message, err.stack);
     res.status(500).json({ message: 'Error fetching unread counts' });
   }
 };
@@ -57,10 +58,10 @@ exports.markMessagesRead = async (req, res) => {
       { roomId, unreadBy: userId },
       { $pull: { unreadBy: userId } }
     );
-    console.log(`✅ Marked ${updated.nModified} messages as read in room ${roomId} for ${userId}`);
+    console.log(`✅ Marked ${updated.modifiedCount} messages as read in room ${roomId} for ${userId}`);
     res.json({ message: 'Messages marked as read' });
   } catch (err) {
-    console.error('❌ Error marking messages as read:', err.message);
+    console.error(`[${new Date().toISOString()}] Error marking messages as read:`, err.message, err.stack);
     res.status(500).json({ message: 'Error marking messages as read' });
   }
 };
@@ -89,7 +90,7 @@ exports.deleteForMe = async (req, res) => {
     console.log(`✅ Messages ${messageIds} marked as deleted for user ${userId}`);
     res.json({ message: 'Messages deleted for current user' });
   } catch (err) {
-    console.error('❌ Error in deleteForMe:', err.message);
+    console.error(`[${new Date().toISOString()}] Error in deleteForMe:`, err.message, err.stack);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
@@ -117,14 +118,14 @@ exports.deleteForEveryone = async (req, res) => {
     console.log(`✅ Messages ${messageIds} permanently deleted by user ${userId}`);
     res.json({ message: 'Messages deleted for everyone' });
   } catch (err) {
-    console.error('❌ Error in deleteForEveryone:', err.message);
+    console.error(`[${new Date().toISOString()}] Error in deleteForEveryone:`, err.message, err.stack);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
 exports.getRecentChats = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id.toString();
     console.log(`🔍 Fetching recent chats for user: ${userId}, token: ${req.headers.authorization}`);
 
     // Validate user
@@ -191,9 +192,7 @@ exports.getRecentChats = async (req, res) => {
     console.log(`✅ Returning ${recentChats.length} recent chats:`, JSON.stringify(recentChats, null, 2));
     res.json(recentChats);
   } catch (err) {
-    console.error('❌ Error fetching recent chats:', err.message, err.stack);
+    console.error(`[${new Date().toISOString()}] Error fetching recent chats:`, err.message, err.stack);
     res.status(500).json({ message: 'Error fetching recent chats', error: err.message });
   }
 };
-
-// ... (other endpoints unchanged)

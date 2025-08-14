@@ -27,14 +27,41 @@ const AccountDeletion = () => {
 
       console.log('Response data:', data); // Debug response
       localStorage.removeItem('token');
-      localStorage.removeItem('userId');
+      localStorage.removeItem('refreshToken');
       toast.success('🎉 Account deleted successfully');
       navigate('/login');
     } catch (err) {
-      const msg = err.response?.data?.message || 'Failed to delete account';
-      console.error('Delete error:', err);
-      setError(msg);
-      toast.error(`❌ ${msg}`);
+      if (err.response?.status === 401) {
+        try {
+          const refreshToken = localStorage.getItem('refreshToken');
+          if (!refreshToken) {
+            throw new Error('No refresh token available');
+          }
+          const { data } = await API.post('/users/refresh', { refreshToken });
+          localStorage.setItem('token', data.token);
+          // Retry the delete request with the new token
+          const retryResponse = await API.delete('/users/delete', {
+            headers: {
+              Authorization: `Bearer ${data.token}`,
+            },
+          });
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          toast.success('🎉 Account deleted successfully');
+          navigate('/login');
+          return;
+        } catch (refreshErr) {
+          const msg = refreshErr.response?.data?.message || 'Session expired. Please log in again.';
+          setError(msg);
+          toast.error(`❌ ${msg}`);
+          navigate('/login');
+        }
+      } else {
+        const msg = err.response?.data?.message || 'Failed to delete account';
+        console.error('Delete error:', err);
+        setError(msg);
+        toast.error(`❌ ${msg}`);
+      }
     } finally {
       setLoading(false);
       setIsModalOpen(false);

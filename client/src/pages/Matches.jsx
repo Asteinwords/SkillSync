@@ -38,12 +38,43 @@ const Matches = () => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [senderId, setSenderId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const token = localStorage.getItem('token');
-  const senderId = localStorage.getItem('userId');
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!token) {
+      console.log('⚠️ No token in localStorage, redirecting to login');
+      navigate('/login');
+      return;
+    }
+
+    const fetchUserId = async () => {
+      try {
+        const { data } = await API.get('/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSenderId(data._id);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('❌ Error fetching user ID:', err.response?.data?.message || err.message);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        navigate('/login');
+      }
+    };
+
+    fetchUserId();
+  }, [navigate, token]);
+
+  useEffect(() => {
+    if (!senderId && !isLoading) {
+      console.log('⚠️ Waiting for senderId to proceed');
+      return;
+    }
+
     const fetchMatches = async () => {
       try {
         const { data } = await API.get('/users/matches', {
@@ -61,7 +92,7 @@ const Matches = () => {
       }
     };
     fetchMatches();
-  }, [token]);
+  }, [token, senderId, isLoading]);
 
   const sendFollowRequest = async (targetId) => {
     try {
@@ -74,7 +105,6 @@ const Matches = () => {
       alert('Failed to send follow request');
     }
   };
-
   const search = async () => {
     setError(null);
     if (!skill.trim()) return setError('Please enter a skill to search.');
@@ -99,6 +129,10 @@ const Matches = () => {
       setLoading(false);
     }
   };
+
+  if (isLoading || !senderId) {
+    return <p className="text-center mt-20 text-2xl animate-pulse text-yellow-400">Loading...</p>;
+  }
 
   return (
     <motion.div

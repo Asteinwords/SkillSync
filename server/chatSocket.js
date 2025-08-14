@@ -10,7 +10,7 @@ module.exports = (io, socketUserMap) => {
   io.on('connection', (socket) => {
     socket.on('registerUser', ({ userId }) => {
       if (!userId) {
-        console.error('⚠️ No userId provided for socket registration');
+        console.error(`[${new Date().toISOString()}] No userId provided for socket registration`);
         return socket.emit('error', 'Invalid user ID');
       }
       socketUserMap[socket.id] = userId;
@@ -23,10 +23,10 @@ module.exports = (io, socketUserMap) => {
         const allowed = await canChat(userA, userB);
         if (!allowed) {
           socket.emit('error', '❌ You can only chat with mutual followers.');
-          console.log(`🚫 Chat blocked: ${userA} ❌ ${userB}`);
+          console.log(`[${new Date().toISOString()}] Chat blocked: ${userA} ❌ ${userB}`);
         }
       } catch (err) {
-        console.error('❌ [startChat] Error:', err.message);
+        console.error(`[${new Date().toISOString()}] [startChat] Error:`, err.message, err.stack);
         socket.emit('error', 'Error starting chat');
       }
     });
@@ -58,27 +58,27 @@ module.exports = (io, socketUserMap) => {
             senderName: (await User.findById(from)).name,
           });
         } else {
-          console.warn(`⚠️ Recipient ${to} not found in socketUserMap`);
+          console.warn(`[${new Date().toISOString()}] Recipient ${to} not found in socketUserMap`);
         }
-        console.log(`💬 ${from} -> ${to} in ${roomId}: ${message}`);
+        console.log(`[${new Date().toISOString()}] 💬 ${from} -> ${to} in ${roomId}: ${message}`);
       } catch (err) {
-        console.error('❌ [sendMessage] Error:', err.message);
+        console.error(`[${new Date().toISOString()}] [sendMessage] Error:`, err.message, err.stack);
         socket.emit('error', 'Error sending message');
       }
     });
 
     socket.on('joinRoom', ({ roomId, userId }) => {
       if (!userId || !roomId) {
-        console.error('⚠️ Invalid joinRoom data:', { roomId, userId });
+        console.error(`[${new Date().toISOString()}] Invalid joinRoom data:`, { roomId, userId });
         return socket.emit('error', 'Invalid room or user ID');
       }
       socket.join(roomId);
-      console.log(`✅ User ${userId} joined room ${roomId}`);
+      console.log(`[${new Date().toISOString()}] User ${userId} joined room ${roomId}`);
     });
 
     socket.on('messagesRead', ({ userId, readerId }) => {
       if (!userId || !readerId) {
-        console.error('⚠️ Invalid messagesRead data:', { userId, readerId });
+        console.error(`[${new Date().toISOString()}] Invalid messagesRead data:`, { userId, readerId });
         return;
       }
       const recipientSocket = Object.keys(socketUserMap).find(
@@ -87,14 +87,14 @@ module.exports = (io, socketUserMap) => {
       if (recipientSocket) {
         io.to(readerId).emit('messagesRead', { userId });
       } else {
-        console.warn(`⚠️ Recipient ${readerId} not found in socketUserMap`);
+        console.warn(`[${new Date().toISOString()}] Recipient ${readerId} not found in socketUserMap`);
       }
     });
 
     socket.on('disconnect', () => {
       const userId = socketUserMap[socket.id];
       delete socketUserMap[socket.id];
-      console.log(`🛑 User ${userId} disconnected`);
+      console.log(`[${new Date().toISOString()}] 🛑 User ${userId} disconnected`);
     });
   });
 };

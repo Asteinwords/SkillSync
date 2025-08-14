@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import API from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 
 const Register = () => {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
@@ -13,25 +14,25 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/users/register', form);
-      alert('Registered successfully');
-      navigate('/login');
+      const { data } = await API.post('/users/register', form);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      toast.success('🎉 Registered successfully');
+      navigate('/dashboard');
     } catch (err) {
-      alert(err.response?.data?.message || 'Error registering user');
+      const msg = err.response?.data?.message || 'Error registering user';
+      toast.error(`❌ ${msg}`);
     }
   };
 
   return (
     <div className="min-h-screen grid md:grid-cols-2 font-body">
-      {/* Left Branding */}
       <div className="bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
         <h1 className="text-4xl font-display font-bold text-indigo-300 mb-4">SkillSync</h1>
         <p className="text-lg text-slate-300 italic max-w-md">
           "Learn what you love. Teach what you know. SkillSync is your barter buddy."
         </p>
       </div>
-
-      {/* Form */}
       <div className="flex items-center justify-center bg-slate-100 px-4">
         <motion.form
           onSubmit={handleSubmit}
@@ -43,7 +44,6 @@ const Register = () => {
           <h2 className="text-3xl font-extrabold text-center text-slate-800 font-display">
             Create your SkillSync Account
           </h2>
-
           <input
             type="text"
             name="name"
@@ -74,7 +74,6 @@ const Register = () => {
           <button className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition">
             Register
           </button>
-
           <p className="text-center text-sm text-gray-600">
             Already have an account?{' '}
             <Link to="/login" className="text-indigo-600 hover:underline">

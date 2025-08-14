@@ -1,10 +1,16 @@
 const User = require('../models/User');
+const RefreshToken = require('../models/RefreshToken');
 const jwt = require('jsonwebtoken');
 const Session = require('../models/sessionModel');
 
-// Helper to generate token
+// Helper to generate JWT
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' }); // Short-lived JWT
+};
+
+// Helper to generate refresh token
+const generateRefreshToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 };
 
 // @route POST /api/users/register
@@ -16,11 +22,21 @@ exports.registerUser = async (req, res) => {
     if (userExists) return res.status(400).json({ message: 'User already exists' });
 
     const user = await User.create({ name, email, password });
+    const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    await RefreshToken.create({
+      userId: user._id,
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    });
+
     res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
-      token: generateToken(user._id),
+      token,
+      refreshToken,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -35,11 +51,21 @@ exports.loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+      const token = generateToken(user._id);
+      const refreshToken = generateRefreshToken(user._id);
+
+      await RefreshToken.create({
+        userId: user._id,
+        token: refreshToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+
       res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
-        token: generateToken(user._id),
+        token,
+        refreshToken,
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
@@ -49,6 +75,59 @@ exports.loginUser = async (req, res) => {
   }
 };
 
+// @route POST /api/users/refresh
+exports.refreshToken = async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'No refresh token provided' });
+  }
+
+  try {
+    const storedToken = await RefreshToken.findOne({ token: refreshToken });
+    if (!storedToken || storedToken.expiresAt < new Date()) {
+      return res.status(401).json({ message: 'Invalid or expired refresh token' });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const newToken = generateToken(user._id);
+    res.json({ token: newToken });
+  } catch (err) {
+    console.error('Refresh token error:', err);
+    res.status(401).json({ message: 'Invalid refresh token' });
+  }
+};
+exports.refreshToken = async (req, res) => {
+  const { refreshToken } = req.body;
+
+  try {
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'No refresh token provided' });
+    }
+
+    const storedToken = await RefreshToken.findOne({ token: refreshToken });
+    if (!storedToken || storedToken.expiresAt < new Date()) {
+      return res.status(401).json({ message: 'Invalid or expired refresh token' });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const newToken = generateToken(user._id);
+    res.json({ token: newToken });
+  } catch (err) {
+    console.error(`[${new Date().toISOString()}] Refresh token error:`, err.message, err.stack);
+    res.status(401).json({ message: 'Invalid refresh token' });
+  }
+};
 
 // @route PUT /api/users/skills
 exports.updateSkills = async (req, res) => {

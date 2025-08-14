@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import API from '../services/api';
 import { Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Stars from '../assets/stars.svg';
 import moment from 'moment';
 
@@ -88,7 +90,7 @@ const Heatmap = ({ streak }) => {
 
   return (
     <div className="overflow-x-auto max-w-full px-2 sm:px-4 py-3 bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/50 shadow-sm scrollbar-none sm:scrollbar-none">
-      <style jsx>{`
+      <style>{`
         .scrollbar-none::-webkit-scrollbar {
           display: none;
         }
@@ -147,45 +149,58 @@ const Dashboard = () => {
   const [aboutMe, setAboutMe] = useState('');
   const [education, setEducation] = useState([{ degree: '', institute: '', year: '' }]);
   const [streakData, setStreakData] = useState({ totalDays: 0, maxStreak: 0, currentStreak: 0, visitHistory: [] });
+  const [isLoading, setIsLoading] = useState(true);
 
   const token = localStorage.getItem('token');
+  const navigate = useNavigate();
 
-useEffect(() => {
-  const fetchProfileAndStreak = async () => {
-    try {
-      const { data: profileData } = await API.get('/users/me', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      console.log('Profile Data:', profileData);
-      setUser(profileData);
-      if (profileData.skillsOffered?.length) setSkillsOffered(profileData.skillsOffered);
-      if (profileData.skillsWanted?.length) setSkillsWanted(profileData.skillsWanted);
-      setAboutMe(profileData.aboutMe || '');
-      if (profileData.education?.length) setEducation(profileData.education);
-
-      const { data: streakData } = await API.post('/users/update-streak', {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUser(prev => ({ ...prev, streak: streakData.streak, points: streakData.points }));
-
-      const visitHistory = [];
-      const today = moment().startOf('day');
-      for (let i = 0; i < streakData.streak; i++) {
-        visitHistory.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
-      }
-      setStreakData({
-        totalDays: streakData.streak,
-        maxStreak: Math.max(streakData.streak, streakData.streak || 0),
-        currentStreak: streakData.streak,
-        visitHistory,
-      });
-    } catch (err) {
-      toast.error('Failed to fetch profile or update streak');
-      console.error('Fetch Error:', err);
+  useEffect(() => {
+    if (!token) {
+      console.log('⚠️ No token in localStorage, redirecting to login');
+      navigate('/login');
+      return;
     }
-  };
-  if (token) fetchProfileAndStreak();
-}, [token]);
+
+    const fetchUserIdAndProfile = async () => {
+      try {
+        const { data: userData } = await API.get('/users/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log('Profile Data:', userData);
+        setUser(userData);
+        if (userData.skillsOffered?.length) setSkillsOffered(userData.skillsOffered);
+        if (userData.skillsWanted?.length) setSkillsWanted(userData.skillsWanted);
+        setAboutMe(userData.aboutMe || '');
+        if (userData.education?.length) setEducation(userData.education);
+
+        const { data: streakData } = await API.post('/users/update-streak', {}, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUser(prev => ({ ...prev, streak: streakData.streak, points: streakData.points }));
+
+        const visitHistory = [];
+        const today = moment().startOf('day');
+        for (let i = 0; i < streakData.streak; i++) {
+          visitHistory.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
+        }
+        setStreakData({
+          totalDays: streakData.streak,
+          maxStreak: Math.max(streakData.streak, streakData.streak || 0),
+          currentStreak: streakData.streak,
+          visitHistory,
+        });
+        setIsLoading(false);
+      } catch (err) {
+        toast.error('Failed to fetch profile or update streak');
+        console.error('Fetch Error:', err);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        navigate('/login');
+      }
+    };
+
+    fetchUserIdAndProfile();
+  }, [token, navigate]);
 
   const handleChange = useCallback((type, index, field, value) => {
     const updated = [...(type === 'offered' ? skillsOffered : skillsWanted)];
@@ -219,7 +234,7 @@ useEffect(() => {
         { skillsOffered, skillsWanted },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success('✅ Skills updated successfully!');
+      toast.success('Skills updated successfully!');
     } catch (err) {
       toast.error('❌ Failed to update skills');
       console.error('Skills Update Error:', err);
@@ -306,6 +321,10 @@ useEffect(() => {
     }
   }, [token]);
 
+  if (isLoading || !user) {
+    return <p className="text-center mt-20 text-2xl animate-pulse text-yellow-400">Loading...</p>;
+  }
+
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-blue-200 via-purple-100 to-pink-200 text-gray-900 px-4 sm:px-6 py-12 sm:py-16 font-sans overflow-hidden">
       <img
@@ -314,6 +333,7 @@ useEffect(() => {
         className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none animate-pulse"
         loading="lazy"
       />
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} closeOnClick pauseOnHover theme="light" />
 
       <motion.div
         variants={containerVariants}
@@ -333,94 +353,90 @@ useEffect(() => {
         {/* Top Row: Profile Card and Calendar */}
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 sm:gap-8">
           {/* Profile Section */}
-          {user && (
-            <motion.section
-              variants={itemVariants}
-              className="sm:col-span-4 bg-white/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 shadow-2xl border border-blue-300/50"
-            >
-              <div className="flex flex-col items-center gap-4 sm:gap-6">
-                <div className="relative group">
-                  <motion.img
-                    src={user.profileImage || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user.name)}`}
-                    alt="Profile"
-                    className="w-20 sm:w-24 h-20 sm:h-24 rounded-full object-cover border-4 border-blue-300/50 shadow-md group-hover:shadow-lg transition-all duration-200 mx-auto"
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ duration: 0.15 }}
-                    loading="lazy"
-                  />
-                  <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
-                    <label className="cursor-pointer text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-500 transition text-center">
-                      Upload Photo
-                      <input
-                        type="file"
-                        accept="image/*"
-                        hidden
-                        onChange={(e) => e.target.files[0] && handleImageUpload(e.target.files[0])}
-                      />
-                    </label>
-                    <button
-                      onClick={() => setShowAvatarPicker(true)}
-                      className="text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-500 transition"
-                    >
-                      Choose Avatar
-                    </button>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-lg sm:text-xl font-semibold text-blue-700">{user.name}</p>
-                  <p className="text-xs sm:text-sm text-gray-600"><strong>Email:</strong> {user.email}</p>
-                  <p className="text-xs sm:text-sm text-gray-600"><strong>Points:</strong> <span className="text-blue-600">{user.points}</span></p>
-                  <p className="text-xs sm:text-sm text-gray-600">
-                    <strong>Badge:</strong>{' '}
-                    <span className={`inline-block px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${badgeStyles[user.badge] || 'bg-gray-100 text-gray-600'}`}>
-                      {user.badge}
-                    </span>
-                  </p>
-                </div>
-                <div className="text-center w-full">
-                  <h3 className="text-xs sm:text-sm font-medium text-blue-700 mb-2 sm:mb-3">Network</h3>
-                  <div className="flex justify-center gap-6 sm:gap-8 text-xs sm:text-sm">
-                    <motion.div
-                      className="text-center cursor-pointer hover:text-blue-500 transition"
-                      onClick={() => { setModalType('followers'); setIsModalOpen(true); }}
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <p className="text-xl sm:text-2xl font-bold text-blue-600">{user.followers?.length || 0}</p>
-                      <p>Followers</p>
-                    </motion.div>
-                    <motion.div
-                      className="text-center cursor-pointer hover:text-blue-500 transition"
-                      onClick={() => { setModalType('following'); setIsModalOpen(true); }}
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <p className="text-xl sm:text-2xl font-bold text-blue-600">{user.following?.length || 0}</p>
-                      <p>Following</p>
-                    </motion.div>
-                  </div>
+          <motion.section
+            variants={itemVariants}
+            className="sm:col-span-4 bg-white/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 shadow-2xl border border-blue-300/50"
+          >
+            <div className="flex flex-col items-center gap-4 sm:gap-6">
+              <div className="relative group">
+                <motion.img
+                  src={user.profileImage || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user.name)}`}
+                  alt="Profile"
+                  className="w-20 sm:w-24 h-20 sm:h-24 rounded-full object-cover border-4 border-blue-300/50 shadow-md group-hover:shadow-lg transition-all duration-200 mx-auto"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.15 }}
+                  loading="lazy"
+                />
+                <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
+                  <label className="cursor-pointer text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-500 transition text-center">
+                    Upload Photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(e) => e.target.files[0] && handleImageUpload(e.target.files[0])}
+                    />
+                  </label>
+                  <button
+                    onClick={() => setShowAvatarPicker(true)}
+                    className="text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-500 transition"
+                  >
+                    Choose Avatar
+                  </button>
                 </div>
               </div>
-            </motion.section>
-          )}
+              <div className="text-center">
+                <p className="text-lg sm:text-xl font-semibold text-blue-700">{user.name}</p>
+                <p className="text-xs sm:text-sm text-gray-600"><strong>Email:</strong> {user.email}</p>
+                <p className="text-xs sm:text-sm text-gray-600"><strong>Points:</strong> <span className="text-blue-600">{user.points}</span></p>
+                <p className="text-xs sm:text-sm text-gray-600">
+                  <strong>Badge:</strong>{' '}
+                  <span className={`inline-block px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${badgeStyles[user.badge] || 'bg-gray-100 text-gray-600'}`}>
+                    {user.badge}
+                  </span>
+                </p>
+              </div>
+              <div className="text-center w-full">
+                <h3 className="text-xs sm:text-sm font-medium text-blue-700 mb-2 sm:mb-3">Network</h3>
+                <div className="flex justify-center gap-6 sm:gap-8 text-xs sm:text-sm">
+                  <motion.div
+                    className="text-center cursor-pointer hover:text-blue-500 transition"
+                    onClick={() => { setModalType('followers'); setIsModalOpen(true); }}
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <p className="text-xl sm:text-2xl font-bold text-blue-600">{user.followers?.length || 0}</p>
+                    <p>Followers</p>
+                  </motion.div>
+                  <motion.div
+                    className="text-center cursor-pointer hover:text-blue-500 transition"
+                    onClick={() => { setModalType('following'); setIsModalOpen(true); }}
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <p className="text-xl sm:text-2xl font-bold text-blue-600">{user.following?.length || 0}</p>
+                    <p>Following</p>
+                  </motion.div>
+                </div>
+              </div>
+            </div>
+          </motion.section>
 
           {/* Streak Calendar Section */}
-          {user && (
-            <motion.section
-              variants={itemVariants}
-              className="sm:col-span-8 bg-white/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 shadow-2xl border border-blue-300/50"
-            >
-              <h2 className="text-lg sm:text-xl font-semibold text-blue-700 mb-3 sm:mb-4">Activity Streak</h2>
-              <div className="flex flex-col sm:flex-row justify-between items-center mb-2 sm:mb-3 text-xs sm:text-sm text-gray-600">
-                <span>Visits in the past year: {streakData.totalDays}</span>
-                <span>Total: {streakData.totalDays} | Max: {streakData.maxStreak} | Current: {streakData.currentStreak}</span>
-              </div>
-              <Heatmap streak={streakData.totalDays} />
-              <div className="text-xs text-gray-500 mt-2 sm:mt-3">
-                {moment().subtract(1, 'year').format('MMM DD, YYYY')} - {moment().format('MMM DD, YYYY')}
-              </div>
-            </motion.section>
-          )}
+          <motion.section
+            variants={itemVariants}
+            className="sm:col-span-8 bg-white/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 shadow-2xl border border-blue-300/50"
+          >
+            <h2 className="text-lg sm:text-xl font-semibold text-blue-700 mb-3 sm:mb-4">Activity Streak</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-2 sm:mb-3 text-xs sm:text-sm text-gray-600">
+              <span>Visits in the past year: {streakData.totalDays}</span>
+              <span>Total: {streakData.totalDays} | Max: {streakData.maxStreak} | Current: {streakData.currentStreak}</span>
+            </div>
+            <Heatmap streak={streakData.totalDays} />
+            <div className="text-xs text-gray-500 mt-2 sm:mt-3">
+              {moment().subtract(1, 'year').format('MMM DD, YYYY')} - {moment().format('MMM DD, YYYY')}
+            </div>
+          </motion.section>
         </div>
 
         {/* Bottom Row: About Me and Skills */}

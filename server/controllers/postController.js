@@ -11,13 +11,12 @@ conn.once('open', () => {
 });
 
 const extractSkills = (content) => {
-  // Base skills list, extended by content-based extraction
   const baseSkills = ['javascript', 'python', 'react', 'node', 'ai', 'blockchain', 'web3', 'iot'];
   const contentSkills = content
     .toLowerCase()
     .split(/\W+/)
-    .filter(word => word.length > 2); // Filter short words
-  return [...new Set([...baseSkills, ...contentSkills])]; // Unique skills
+    .filter(word => word.length > 2);
+  return [...new Set([...baseSkills, ...contentSkills])];
 };
 
 exports.getAllPosts = async (req, res) => {
@@ -68,7 +67,6 @@ exports.createPost = async (req, res) => {
       theme,
     };
 
-    // Only include poll-related fields if pollOptions is provided and valid
     if (pollOptions) {
       const parsedPollOptions = JSON.parse(pollOptions);
       if (Array.isArray(parsedPollOptions) && parsedPollOptions.every(opt => typeof opt === 'string' && opt.trim())) {
@@ -100,6 +98,7 @@ exports.createPost = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 exports.deletePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -304,7 +303,6 @@ exports.updateTrendingSkills = async () => {
   console.log(`[${new Date().toISOString()}] Starting trending skills update`);
 
   try {
-    // Fetch users and posts in parallel
     const [users, posts] = await Promise.all([
       User.find().select('skillsOffered skillsWanted').lean(),
       Post.find().select('content').lean(),
@@ -312,7 +310,6 @@ exports.updateTrendingSkills = async () => {
 
     const skillCounts = {};
 
-    // Count skills from user profiles
     users.forEach(user => {
       [...user.skillsOffered, ...user.skillsWanted].forEach(skillObj => {
         const skill = skillObj.skill.toLowerCase().trim();
@@ -322,7 +319,6 @@ exports.updateTrendingSkills = async () => {
       });
     });
 
-    // Count skills from post content
     posts.forEach(post => {
       if (post.content) {
         const skills = extractSkills(post.content);
@@ -332,7 +328,6 @@ exports.updateTrendingSkills = async () => {
       }
     });
 
-    // Update TrendingSkill collection
     const bulkOps = Object.entries(skillCounts).map(([skill, count]) => ({
       updateOne: {
         filter: { name: skill },
@@ -345,7 +340,6 @@ exports.updateTrendingSkills = async () => {
       await TrendingSkill.bulkWrite(bulkOps);
     }
 
-    // Remove skills with zero counts or outdated entries (e.g., not updated in the last 24 hours)
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
     await TrendingSkill.deleteMany({ updatedAt: { $lt: yesterday } });
 

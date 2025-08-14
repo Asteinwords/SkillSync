@@ -19,7 +19,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="text-red-400 text-center p-2 sm:p-4 font-sans text-base sm:text-lg">
+        <div className="text-red-400 text-center p-4 sm:p-6 font-sans text-sm sm:text-lg">
           Something went wrong in Bookmarks. Please refresh the page or try again later.
         </div>
       );
@@ -41,16 +41,16 @@ const itemVariants = {
 const PostCard = ({ post, myId, token, handleLike, handleBookmark, handleComment, handlePollVote, handleDelete }) => (
   <motion.div
     variants={itemVariants}
-    className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl sm:rounded-3xl p-2 sm:p-4 mb-2 sm:mb-4 shadow-md sm:shadow-xl border-t-2 sm:border-t-4 border-secondary transition-all duration-300 hover:shadow-lg sm:hover:shadow-2xl"
+    className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6 shadow-md sm:shadow-xl border-t-2 sm:border-t-4 border-secondary transition-all duration-300 hover:shadow-lg sm:hover:shadow-2xl"
   >
-    <div className="flex items-center justify-between mb-1 sm:mb-2">
-      <p className="font-semibold text-accent flex items-center gap-1 sm:gap-2">
-        <span className="w-6 sm:w-8 h-6 sm:h-8 rounded-full bg-accent/30 flex items-center justify-center text-accent font-bold text-sm sm:text-xl">
+    <div className="flex items-center justify-between mb-3 sm:mb-4">
+      <p className="font-semibold text-accent flex items-center gap-2 sm:gap-3">
+        <span className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-accent/30 flex items-center justify-center text-accent font-bold text-base sm:text-xl">
           {post.author?.name?.[0] || '?'}
         </span>
         {post.author?.name || 'Unknown User'}
       </p>
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex items-center gap-2 sm:gap-3">
         <span className="text-xs sm:text-sm text-gray-500">
           {new Date(post.createdAt).toLocaleString()}
         </span>
@@ -60,15 +60,15 @@ const PostCard = ({ post, myId, token, handleLike, handleBookmark, handleComment
             className="text-red-400 hover:text-red-600 transition"
             title="Delete Post"
           >
-            <Trash2 className="w-3 sm:w-4 h-3 sm:h-4" />
+            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         )}
       </div>
     </div>
-    <p className="text-gray-800 mb-1 sm:mb-2 text-sm sm:text-base">{post.content}</p>
-    <p className="text-xs sm:text-sm text-secondary font-semibold mb-2 sm:mb-4">{post.theme}</p>
+    <p className="text-gray-800 mb-3 sm:mb-4 text-sm sm:text-base">{post.content}</p>
+    <p className="text-xs sm:text-sm text-secondary font-semibold mb-3 sm:mb-4">{post.theme}</p>
     {post.media && (
-      <div className="mb-2 sm:mb-4">
+      <div className="mb-4 sm:mb-6">
         {post.media.type.startsWith('image/') ? (
           <img src={post.media.url} alt="Post media" className="max-w-full h-auto rounded-lg sm:rounded-xl object-cover" />
         ) : (
@@ -77,45 +77,45 @@ const PostCard = ({ post, myId, token, handleLike, handleBookmark, handleComment
       </div>
     )}
     {post.pollOptions && (
-      <div className="mb-2 sm:mb-4">
+      <div className="mb-4 sm:mb-6">
         <h4 className="text-xs sm:text-sm font-bold text-accent">Poll</h4>
         {post.pollOptions.map((option, index) => (
-          <div key={index} className="flex items-center gap-1 sm:gap-2 mt-1 sm:mt-2">
+          <div key={index} className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-3">
             <button
               onClick={() => handlePollVote(post._id, index)}
-              className={`flex-1 p-1 sm:p-2 rounded-lg sm:rounded-xl border ${post.pollVotes?.[myId] === index ? 'bg-accent/20 border-accent' : 'border-gray-200 hover:bg-accent/10'} transition text-left text-xs sm:text-sm`}
+              className={`flex-1 p-2 sm:p-3 rounded-lg sm:rounded-xl border ${post.pollVotes?.[myId] === index ? 'bg-accent/20 border-accent' : 'border-gray-200 hover:bg-accent/10'} transition text-left text-xs sm:text-sm`}
               disabled={post.pollVotes?.[myId] !== undefined}
             >
               {option} ({post.pollResults?.[index] || 0} votes)
             </button>
           </div>
         ))}
-        <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Total votes: {Object.values(post.pollResults || {}).reduce((a, b) => a + b, 0)}</p>
+        <p className="text-xs sm:text-sm text-gray-500 mt-2 sm:mt-3">Total votes: {Object.values(post.pollResults || {}).reduce((a, b) => a + b, 0)}</p>
       </div>
     )}
-    <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+    <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm">
       <div className="relative group">
-        <button className="flex items-center gap-1 sm:gap-1 text-accent hover:text-accent-dark transition">
-          <Heart className="w-3 sm:w-4 h-3 sm:h-4" />
+        <button className="flex items-center gap-1 sm:gap-2 text-accent hover:text-accent-dark transition">
+          <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
           {Object.values(post.reactions || {}).reduce((a, b) => a + b, 0)} Reactions
         </button>
-        <div className="absolute hidden group-hover:flex gap-1 sm:gap-2 p-1 sm:p-2 bg-white shadow-lg sm:shadow-xl rounded-lg sm:rounded-xl z-10">
-          <button onClick={() => handleLike(post._id, 'like')} className="text-accent hover:text-accent-dark flex items-center gap-1">
-            <ThumbsUp className="w-3 sm:w-4 h-3 sm:h-4" /> Like
+        <div className="absolute hidden group-hover:flex gap-2 sm:gap-3 p-2 sm:p-3 bg-white shadow-lg sm:shadow-xl rounded-lg sm:rounded-xl z-10">
+          <button onClick={() => handleLike(post._id, 'like')} className="text-accent hover:text-accent-dark flex items-center gap-1 text-xs sm:text-sm">
+            <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5" /> Like
           </button>
-          <button onClick={() => handleLike(post._id, 'celebrate')} className="text-accent hover:text-accent-dark flex items-center gap-1">
-            <Award className="w-3 sm:w-4 h-3 sm:h-4" /> Celebrate
+          <button onClick={() => handleLike(post._id, 'celebrate')} className="text-accent hover:text-accent-dark flex items-center gap-1 text-xs sm:text-sm">
+            <Award className="w-4 h-4 sm:w-5 sm:h-5" /> Celebrate
           </button>
-          <button onClick={() => handleLike(post._id, 'insightful')} className="text-accent hover:text-accent-dark flex items-center gap-1">
-            <Lightbulb className="w-3 sm:w-4 h-3 sm:h-4" /> Insightful
+          <button onClick={() => handleLike(post._id, 'insightful')} className="text-accent hover:text-accent-dark flex items-center gap-1 text-xs sm:text-sm">
+            <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5" /> Insightful
           </button>
         </div>
       </div>
       <button
         onClick={() => handleBookmark(post._id)}
-        className={`flex items-center gap-1 sm:gap-1 ${post.bookmarks?.includes(myId) ? 'text-secondary' : 'text-accent'} hover:text-secondary-dark transition`}
+        className={`flex items-center gap-1 sm:gap-2 ${post.bookmarks?.includes(myId) ? 'text-secondary' : 'text-accent'} hover:text-secondary-dark transition`}
       >
-        <Bookmark className="w-3 sm:w-4 h-3 sm:h-4" />
+        <Bookmark className="w-4 h-4 sm:w-5 sm:h-5" />
         {post.bookmarks?.length || 0} Bookmarks
       </button>
       <button
@@ -123,17 +123,17 @@ const PostCard = ({ post, myId, token, handleLike, handleBookmark, handleComment
           const comment = prompt('Enter your comment:');
           if (comment) handleComment(post._id, comment);
         }}
-        className="flex items-center gap-1 sm:gap-1 text-accent hover:text-accent-dark transition"
+        className="flex items-center gap-1 sm:gap-2 text-accent hover:text-accent-dark transition"
       >
-        <MessageCircle className="w-3 sm:w-4 h-3 sm:h-4" />
+        <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
         {post.comments?.length || 0} Comments
       </button>
     </div>
     {post.comments?.length > 0 && (
-      <div className="mt-2 sm:mt-4">
+      <div className="mt-3 sm:mt-4">
         <h4 className="text-xs sm:text-sm font-bold text-accent">Comments</h4>
         {post.comments.map((comment, index) => (
-          <p key={index} className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2">
+          <p key={index} className="text-xs sm:text-sm text-gray-600 mt-2 sm:mt-3">
             <span className="font-semibold">{comment.author?.name || 'Unknown'}:</span> {comment.content}
           </p>
         ))}
@@ -298,65 +298,65 @@ const Bookmarks = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-b from-primary to-indigo-600 font-sans text-gray-900">
-        <div className="min-h-screen flex flex-col sm:flex-row">
+        <div className="flex flex-col lg:flex-row gap-4 p-4 lg:p-6">
           {/* Left Sidebar (Followers and Following) */}
           <motion.div
             variants={itemVariants}
-            className="w-full sm:w-80 bg-white/90 rounded-r-none sm:rounded-r-3xl p-2 sm:p-6 shadow-md sm:shadow-2xl sticky top-2 sm:top-6 self-start ml-0 sm:ml-2 lg:left-0"
+            className="w-full lg:w-80 bg-white/90 rounded-3xl p-4 sm:p-6 shadow-md sm:shadow-2xl lg:sticky lg:top-6 lg:self-start"
           >
-            <h2 className="text-base sm:text-xl font-bold text-accent mb-2 sm:mb-4">My Followers</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-accent mb-4">My Followers</h2>
             {followers.length === 0 ? (
-              <p className="text-gray-600 text-xs sm:text-sm">You have no followers yet.</p>
+              <p className="text-gray-600 text-sm">You have no followers yet.</p>
             ) : (
-              <div className="space-y-1 sm:space-y-3 max-h-32 sm:max-h-64 overflow-y-auto scrollbar-hide">
+              <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-hide">
                 {followers.map((follower) => (
                   <Link
                     key={follower._id}
                     to={`/users/${follower._id}/profile`}
-                    className="flex items-center gap-1 sm:gap-3 p-1 sm:p-3 bg-accent/10 rounded-lg sm:rounded-xl hover:bg-accent/20 transition"
+                    className="flex items-center gap-3 p-3 bg-accent/10 rounded-xl hover:bg-accent/20 transition"
                   >
                     <img
                       src={follower.profileImage || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(follower.name)}`}
                       alt={follower.name}
-                      className="w-5 sm:w-8 h-5 sm:h-8 rounded-full border-2 border-accent/50"
+                      className="w-8 h-8 rounded-full border-2 border-accent/50"
                       loading="lazy"
                     />
-                    <p className="text-xs sm:text-sm text-accent font-medium">{follower.name}</p>
+                    <p className="text-sm text-accent font-medium">{follower.name}</p>
                   </Link>
                 ))}
               </div>
             )}
-            <h2 className="text-base sm:text-xl font-bold text-accent mt-2 sm:mt-6 mb-2 sm:mb-4">My Following</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-accent mt-6 mb-4">My Following</h2>
             {following.length === 0 ? (
-              <p className="text-gray-600 text-xs sm:text-sm">You are not following anyone yet.</p>
+              <p className="text-gray-600 text-sm">You are not following anyone yet.</p>
             ) : (
-              <div className="space-y-1 sm:space-y-3 max-h-32 sm:max-h-64 overflow-y-auto scrollbar-hide">
+              <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-hide">
                 {following.map((user) => (
                   <Link
                     key={user._id}
                     to={`/users/${user._id}/profile`}
-                    className="flex items-center gap-1 sm:gap-3 p-1 sm:p-3 bg-accent/10 rounded-lg sm:rounded-xl hover:bg-accent/20 transition"
+                    className="flex items-center gap-3 p-3 bg-accent/10 rounded-xl hover:bg-accent/20 transition"
                   >
                     <img
                       src={user.profileImage || `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user.name)}`}
                       alt={user.name}
-                      className="w-5 sm:w-8 h-5 sm:h-8 rounded-full border-2 border-accent/50"
+                      className="w-8 h-8 rounded-full border-2 border-accent/50"
                       loading="lazy"
                     />
-                    <p className="text-xs sm:text-sm text-accent font-medium">{user.name}</p>
+                    <p className="text-sm text-accent font-medium">{user.name}</p>
                   </Link>
                 ))}
               </div>
             )}
           </motion.div>
           {/* Main Content */}
-          <div className="flex-1 p-2 sm:p-4 lg:p-6">
-            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-2xl mx-auto">
-              <motion.h1 variants={itemVariants} className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-blue-600 mb-4 sm:mb-8">
+          <div className="flex-1">
+            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-3xl mx-auto">
+              <motion.h1 variants={itemVariants} className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-blue-600 mb-6 sm:mb-8">
                 Bookmarked Posts
               </motion.h1>
-              <motion.section variants={itemVariants} className="overflow-y-auto scrollbar-hide">
-                <h2 className="text-base sm:text-lg font-semibold text-accent mb-2 sm:mb-4">Your Bookmarks</h2>
+              <motion.section variants={itemVariants}>
+                <h2 className="text-lg sm:text-xl font-semibold text-accent mb-4 sm:mb-6">Your Bookmarks</h2>
                 {bookmarks.length === 0 ? (
                   <p className="text-gray-600 text-center text-sm sm:text-base">No bookmarked posts.</p>
                 ) : (
@@ -380,11 +380,11 @@ const Bookmarks = () => {
           {/* Right Sidebar (Go Back to Community) */}
           <motion.div
             variants={itemVariants}
-            className="w-full sm:w-80 bg-white/90 rounded-l-none sm:rounded-l-3xl p-2 sm:p-6 shadow-md sm:shadow-2xl sticky top-2 sm:top-6 self-start mr-0 sm:mr-2 lg:right-0"
+            className="w-full lg:w-80 bg-white/90 rounded-3xl p-4 sm:p-6 shadow-md sm:shadow-2xl lg:sticky lg:top-6 lg:self-start"
           >
-            <h2 className="text-base sm:text-xl font-bold text-accent mb-2 sm:mb-4">Navigation</h2>
-            <Link to="/community" className="text-accent hover:text-accent-dark flex items-center gap-1 sm:gap-2 text-xs sm:text-sm mb-2 sm:mb-4">
-              <Bookmark className="w-4 sm:w-6 h-4 sm:h-6" /> Go Back to Community
+            <h2 className="text-lg sm:text-xl font-bold text-accent mb-4">Navigation</h2>
+            <Link to="/community" className="text-accent hover:text-accent-dark flex items-center gap-2 text-sm sm:text-base mb-4">
+              <Bookmark className="w-5 h-5 sm:w-6 sm:h-6" /> Go Back to Community
             </Link>
           </motion.div>
         </div>
