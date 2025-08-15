@@ -211,6 +211,8 @@ function App() {
           <Route path="/" element={<PublicRoute><Home /></PublicRoute>} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/reset-password/:token" element={<PublicRoute><ResetPassword /></PublicRoute>} />
 
           {/* Private Routes */}
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
@@ -224,10 +226,8 @@ function App() {
           <Route path="/room" element={<PrivateRoute><Rooms /></PrivateRoute>} />
           <Route path="/chatt" element={<PrivateRoute><Chat /></PrivateRoute>} />
           <Route path="/webpage" element={<PrivateRoute><MainHome /></PrivateRoute>} />
-          <Route path="/forgot-password" element={<PrivateRoute><ForgotPassword /></PrivateRoute>} />
           <Route path="/community" element={<PrivateRoute><CommunityFeed /></PrivateRoute>} />
           <Route path="/bookmarks" element={<PrivateRoute><Bookmarks /></PrivateRoute>} />
-          <Route path="/reset_password/:id/:token" element={<PrivateRoute><ResetPassword /></PrivateRoute>} />
           <Route path="/badges" element={<PrivateRoute><Badges /></PrivateRoute>} />
           <Route path="/delete" element={<PrivateRoute><AccountDeletion /></PrivateRoute>} />
 

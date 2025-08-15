@@ -214,7 +214,7 @@ const Navbar = () => {
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link
-            to={authenticated ? '/dashboard' : '/'}
+            to={authenticated ? '/webpage' : '/'}
             className="text-2xl font-extrabold font-display bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-pink-400 flex items-center gap-2"
           >
             <motion.span

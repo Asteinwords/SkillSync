@@ -1,3 +1,4 @@
+// Updated frontend/src/components/Login.js
 import React, { useState } from 'react';
 import API from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
@@ -6,37 +7,64 @@ import { toast } from 'react-hot-toast';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
+  const [otp, setOtp] = useState('');
+  const [showOTP, setShowOTP] = useState(false);
+  const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    const { data } = await API.post('/users/login', form);
+    try {
+      const { data } = await API.post('/users/login', form);
 
-    const { token, refreshToken, _id } = data;
-    if (!token || !refreshToken || !_id) {
-      throw new Error('Invalid login response');
+      if (data.success) {
+        setShowOTP(true);
+        setUserId(data.userId);
+        toast.success('OTP sent to your email');
+      } else {
+        throw new Error('Invalid response');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Login failed. Try again.';
+      toast.error(`❌ ${msg}`);
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    localStorage.setItem('token', token);
-    localStorage.setItem('refreshToken', refreshToken);
-    localStorage.setItem('userId', _id); // Store userId
-    toast.success('🎉 Login successful');
-    navigate('/webpage');
-  } catch (err) {
-    const msg = err.response?.data?.message || 'Login failed. Try again.';
-    toast.error(`❌ ${msg}`);
-    console.error('Login error:', err);
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleOTPSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data } = await API.post('/users/verify-otp', { userId, otp });
+
+      const { token, refreshToken, _id } = data;
+      if (!token || !refreshToken || !_id) {
+        throw new Error('Invalid verification response');
+      }
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('userId', _id);
+      toast.success('🎉 Login successful');
+      navigate('/webpage');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'OTP verification failed.';
+      toast.error(`❌ ${msg}`);
+      console.error('OTP error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen grid md:grid-cols-2 font-body">
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 text-white flex flex-col items-center justify-center p-8 text-center">
@@ -47,7 +75,7 @@ const Login = () => {
       </div>
       <div className="flex items-center justify-center bg-slate-100 px-4">
         <motion.form
-          onSubmit={handleSubmit}
+          onSubmit={showOTP ? handleOTPSubmit : handleSubmit}
           className="bg-white shadow-xl rounded-xl p-8 w-full max-w-md space-y-5"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -56,24 +84,37 @@ const Login = () => {
           <h2 className="text-3xl font-extrabold text-center text-slate-800 font-display">
             Login to SkillSync
           </h2>
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-400 outline-none"
-            value={form.email}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-400 outline-none"
-            value={form.password}
-            onChange={handleChange}
-            required
-          />
+          {!showOTP ? (
+            <>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-400 outline-none"
+                value={form.email}
+                onChange={handleChange}
+                required
+              />
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-400 outline-none"
+                value={form.password}
+                onChange={handleChange}
+                required
+              />
+            </>
+          ) : (
+            <input
+              type="text"
+              placeholder="Enter OTP"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-400 outline-none"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              required
+            />
+          )}
           <button
             type="submit"
             disabled={loading}
@@ -99,8 +140,15 @@ const Login = () => {
                 ></path>
               </svg>
             )}
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Processing...' : (showOTP ? 'Verify OTP' : 'Login')}
           </button>
+          {!showOTP && (
+            <p className="text-center text-sm text-gray-600">
+              <Link to="/forgot-password" className="text-indigo-600 hover:underline">
+                Forgot password?
+              </Link>
+            </p>
+          )}
           <p className="text-center text-sm text-gray-600">
             New here?{' '}
             <Link to="/register" className="text-indigo-600 hover:underline">

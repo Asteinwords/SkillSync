@@ -18,6 +18,9 @@ const {
   updateVisit,
   deleteUser,
   refreshToken,
+  verifyOTP,
+  forgotPassword,
+  resetPassword,
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const User = require('../models/User');
@@ -26,6 +29,9 @@ const User = require('../models/User');
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/refresh', refreshToken);
+router.post('/verify-otp', verifyOTP);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password/:token', resetPassword);
 router.put('/profile-info', protect, updateProfileInfo);
 
 // Protected Routes

@@ -1,3 +1,4 @@
+// Updated frontend/src/components/Register.js
 import React, { useState } from 'react';
 import API from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
@@ -6,6 +7,7 @@ import { toast } from 'react-hot-toast';
 
 const Register = () => {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) =>
@@ -13,15 +15,16 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      const { data } = await API.post('/users/register', form);
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      toast.success('🎉 Registered successfully');
-      navigate('/dashboard');
+      await API.post('/users/register', form);
+      toast.success('🎉 Registered successfully. Please login.');
+      navigate('/login');
     } catch (err) {
       const msg = err.response?.data?.message || 'Error registering user';
       toast.error(`❌ ${msg}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,8 +74,31 @@ const Register = () => {
             onChange={handleChange}
             required
           />
-          <button className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition">
-            Register
+          <button 
+            disabled={loading}
+            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition flex items-center justify-center"
+          >
+            {loading && (
+              <svg
+                className="animate-spin h-5 w-5 text-white mr-2"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                ></path>
+              </svg>
+            )}
+            {loading ? 'Registering...' : 'Register'}
           </button>
           <p className="text-center text-sm text-gray-600">
             Already have an account?{' '}

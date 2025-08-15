@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'https://skillsync-cvqg.onrender.com/api/rooms',
+  baseURL: 'http://localhost:5000/api/rooms',
 });
 
 export const createRoom = (roomId, password, userId) =>

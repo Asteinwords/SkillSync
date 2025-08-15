@@ -1,10 +1,11 @@
+
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
-
+const path = require('path');
 const Room = require('./models/Room');
 const User = require('./models/User');
 const Message = require('./models/Message');
@@ -17,7 +18,28 @@ const eventRoutes = require('./routes/eventRoutes');
 const setupChatSocket = require('./chatSocket');
 require('./scheduler'); // node-schedule for autoMarkDone
 const { startScheduler } = require('./schedulerr'); // node-cron for updateTrendingSkills
-dotenv.config();
+
+// Load .env file explicitly
+const envPath = path.resolve(__dirname, '.env');
+const result = dotenv.config({ path: envPath });
+if (result.error) {
+  console.error('Error loading .env file:', result.error);
+  process.exit(1); // Exit if .env fails to load
+} else {
+  console.log('Successfully loaded .env file:', result.parsed);
+}
+
+// Log environment variables for debugging
+console.log('Environment Variables:', {
+  SMTP_USER: process.env.SMTP_USER,
+  SMTP_PASS: process.env.SMTP_PASS ? '[REDACTED]' : undefined,
+  EMAIL_FROM: process.env.EMAIL_FROM,
+  MONGO_URI: process.env.MONGO_URI ? '[REDACTED]' : undefined,
+  JWT_SECRET: process.env.JWT_SECRET ? '[REDACTED]' : undefined,
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ? '[REDACTED]' : undefined,
+  PORT: process.env.PORT,
+  CLIENT_URL: process.env.CLIENT_URL,
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -28,7 +50,7 @@ const socketUserMap = new Map();
 
 // Define allowed origins
 const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:5173',
+  process.env.CLIENT_URL || 'http://localhost:3000',
   'https://musical-piroshki-87e2c7.netlify.app',
 ];
 
@@ -161,6 +183,7 @@ mongoose
   })
   .catch((err) => {
     console.error('❌ MongoDB connection error:', err);
+    process.exit(1);
   });
 
 // Room-related Socket.IO handlers

@@ -11,21 +11,20 @@ const userSchema = new mongoose.Schema({
   },
   password: { type: String, required: true },
   points: { type: Number, default: 0 },
-  streak: { type: Number, default: 0 }, // Current streak count
-  lastVisited: { type: Date }, // Last date the user visited
-  visits:{  type: Number,default:0},
+  streak: { type: Number, default: 0 },
+  lastVisited: { type: Date },
+  visits: { type: Number, default: 0 },
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  
   profileImage: { type: String, default: '' },
   aboutMe: { type: String },
   education: [
     {
       degree: String,
       institute: String,
-      year: String
-    }
+      year: String,
+    },
   ],
   skillsOffered: [
     {
@@ -33,29 +32,32 @@ const userSchema = new mongoose.Schema({
       level: {
         type: String,
         enum: ['Beginner', 'Intermediate', 'Expert'],
-        default: 'Beginner'
-      }
-    }
+        default: 'Beginner',
+      },
+    },
   ],
   badge: {
-  type: String,
-  enum: {
-    values: ['Beginner', 'Contributor', 'Mentor', 'Expert'],
-    message: '{VALUE} is not a valid badge',
+    type: String,
+    enum: {
+      values: ['Beginner', 'Contributor', 'Mentor', 'Expert'],
+      message: '{VALUE} is not a valid badge',
+    },
+    default: 'Beginner',
   },
-  default: 'Beginner',
-},
   skillsWanted: [
     {
       skill: String,
       level: {
         type: String,
         enum: ['Beginner', 'Intermediate', 'Expert'],
-        default: 'Beginner'
-      }
-    }
+        default: 'Beginner',
+      },
+    },
   ],
- 
+  otp: { type: String },
+  otpExpires: { type: Date },
+  resetPasswordToken: { type: String },
+  resetPasswordExpire: { type: Date },
 }, { timestamps: true });
 
 // Hash password before saving
