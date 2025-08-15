@@ -11,7 +11,7 @@
 // // // } from 'lucide-react';
 // // // import starsBg from '../assets/stars.svg';
 
-// // // const socket = io("http://localhost:5000");
+// // // const socket = io("https://skillsync-cvqg.onrender.com");
 
 // // // const LiveRoom = () => {
 // // //   const { roomId } = useParams();
@@ -237,7 +237,7 @@
 // // //     const handleBeforeUnload = (e) => {
 // // //       const data = JSON.stringify({ roomId, userId: user._id });
 // // //       const blob = new Blob([data], { type: 'application/json' });
-// // //       navigator.sendBeacon('http://localhost:5000/api/rooms/leave', blob);
+// // //       navigator.sendBeacon('https://skillsync-cvqg.onrender.com/api/rooms/leave', blob);
 // // //       cleanup();
 // // //     };
 
@@ -365,7 +365,7 @@
 // //       return;
 // //     }
 
-// //     socketRef.current = io("http://localhost:5000", { forceNew: true });
+// //     socketRef.current = io("https://skillsync-cvqg.onrender.com", { forceNew: true });
 // //     console.log('[LiveRoom] Socket initialized:', socketRef.current.id);
 
 // //     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(currentStream => {
@@ -692,7 +692,7 @@
 // //       console.log('[LiveRoom] beforeunload triggered');
 // //       const data = JSON.stringify({ roomId, userId: user._id });
 // //       const blob = new Blob([data], { type: 'application/json' });
-// //       navigator.sendBeacon('http://localhost:5000/api/rooms/leave', blob);
+// //       navigator.sendBeacon('https://skillsync-cvqg.onrender.com/api/rooms/leave', blob);
 // //       cleanup(socketRef.current);
 // //     };
 
@@ -826,7 +826,7 @@
 //   const animationFrameRef = useRef();
 
 //   useEffect(() => {
-//     socketRef.current = io('http://localhost:5000', {
+//     socketRef.current = io('https://skillsync-cvqg.onrender.com', {
 //       transports: ['websocket', 'polling'],
 //       reconnection: true,
 //       reconnectionAttempts: 5,
@@ -1665,7 +1665,7 @@ const LiveRoom = () => {
   const animationFrameRef = useRef();
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:5000', {
+    socketRef.current = io('https://skillsync-cvqg.onrender.com', {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,

@@ -1,7 +1,7 @@
 // // src/services/socket.js
 // import { io } from 'socket.io-client';
 
-// const socket = io('http://localhost:5000', {
+// const socket = io('https://skillsync-cvqg.onrender.com', {
 //   transports: ['websocket'], // force websocket
 //   withCredentials: true,
 // });
@@ -11,7 +11,7 @@ import { io } from 'socket.io-client';
 
 const user = JSON.parse(localStorage.getItem('user')); // or use currentUser from auth context
 
-const socket = io('http://localhost:5000', {
+const socket = io('https://skillsync-cvqg.onrender.com', {
   transports: ['websocket','polling'],
   withCredentials: true,
   auth: {
