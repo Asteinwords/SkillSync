@@ -51,7 +51,7 @@ const socketUserMap = new Map();
 // Define allowed origins
 const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:3000',
-  'https://celebrated-kheer-583a17.netlify.app',
+  'https://fancy-kitsune-3545b7.netlify.app',
 ];
 
 const corsOptions = {
