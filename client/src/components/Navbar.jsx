@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Menu, X, User } from 'lucide-react';
+import { Bell, Menu, X, User, HelpCircle } from 'lucide-react';
 import { jwtDecode } from 'jwt-decode';
 import API from '../services/api';
 import socket from '../services/socket';
 import Stars from '../assets/stars.svg';
+import Guide from './Guide';
 
 const navVariants = {
   hidden: { opacity: 0, y: -20 },
@@ -42,6 +43,7 @@ const Navbar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const getStorageItem = (key) => {
     try {
@@ -259,6 +261,14 @@ const Navbar = () => {
                     Signup
                   </Link>
                 </motion.div>
+                {/* <motion.div variants={linkVariants}>
+                  <button
+                    onClick={() => setIsGuideOpen(true)}
+                    className="hover:text-blue-300 transition-colors"
+                  >
+                    Guide
+                  </button>
+                </motion.div> */}
               </>
             ) : (
               <>
@@ -296,6 +306,20 @@ const Navbar = () => {
                   <Link to="/chat" className="hover:text-blue-300 transition-colors">
                     Chat
                   </Link>
+                </motion.div>
+                <motion.div variants={linkVariants}>
+                  <Link to="/points-store" className="hover:text-blue-300 transition-colors">
+                    Points-Store
+                  </Link>
+                </motion.div>
+                
+                <motion.div variants={linkVariants}>
+                  <button
+                    onClick={() => setIsGuideOpen(true)}
+                    className="hover:text-blue-300 transition-colors"
+                  >
+                    Guide
+                  </button>
                 </motion.div>
               </>
             )}
@@ -474,6 +498,15 @@ const Navbar = () => {
                       >
                         Signup
                       </Link>
+                      {/* <button
+                        onClick={() => {
+                          setIsGuideOpen(true);
+                          setIsSidebarOpen(false);
+                        }}
+                        className="text-lg hover:text-blue-300 transition-colors text-left"
+                      >
+                        Guide
+                      </button> */}
                     </>
                   ) : (
                     <>
@@ -526,6 +559,22 @@ const Navbar = () => {
                       >
                         Chat
                       </Link>
+                      <Link
+                        to="/points-store"
+                        className="text-lg hover:text-blue-300 transition-colors"
+                        onClick={() => setIsSidebarOpen(false)}
+                      >
+                        Points-Store
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setIsGuideOpen(true);
+                          setIsSidebarOpen(false);
+                        }}
+                        className="text-lg hover:text-blue-300 transition-colors text-left"
+                      >
+                        Guide
+                      </button>
                       <button
                         onClick={() => {
                           handleLogout();
@@ -542,6 +591,9 @@ const Navbar = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Guide Modal */}
+        <Guide isOpen={isGuideOpen} setIsOpen={setIsGuideOpen} />
       </motion.nav>
     </header>
   );

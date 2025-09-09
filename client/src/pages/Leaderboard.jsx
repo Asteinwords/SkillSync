@@ -41,7 +41,24 @@ const Leaderboard = () => {
     const fetchLeaderboard = async () => {
       try {
         const { data } = await API.get('/users/top-users');
-        setUsers(data);
+        console.log('Leaderboard Data:', data);
+
+        // Ensure badge consistency with points
+        const updatedUsers = data.map(user => {
+          let newBadge = 'Beginner';
+          if (user.points > 100) newBadge = 'Expert';
+          else if (user.points > 50) newBadge = 'Mentor';
+          else if (user.points > 20) newBadge = 'Contributor';
+          
+          // Log if badge needs updating
+          if (newBadge !== user.badge) {
+            console.warn(`Badge mismatch for user ${user._id}: API returned ${user.badge}, calculated ${newBadge} (points: ${user.points})`);
+            return { ...user, badge: newBadge };
+          }
+          return user;
+        });
+
+        setUsers(updatedUsers);
       } catch (err) {
         console.error('Failed to fetch leaderboard:', err);
       }

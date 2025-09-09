@@ -56,3 +56,7 @@ body {
 .scrollbar-hide {
   -ms-overflow-style: none; /* Internet Explorer and Edge */
 }
+body {
+  margin: 0;
+  padding: 0;
+}

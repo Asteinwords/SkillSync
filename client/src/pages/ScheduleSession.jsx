@@ -602,13 +602,13 @@ const ScheduleSession = () => {
             <motion.input
               type="url"
               name="meetLink"
-              placeholder="Google Meet link (optional)"
+              placeholder="Google Meet link"
               value={form.meetLink}
               onChange={handleChange}
               className="border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
             />
-            <motion.input
+            {/* <motion.input
               type="text"
               name="meetingId"
               placeholder="Meeting ID (optional)"
@@ -616,8 +616,8 @@ const ScheduleSession = () => {
               onChange={handleChange}
               className="border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
-            />
-            <motion.input
+            /> */}
+            {/* <motion.input
               type="text"
               name="meetingPassword"
               placeholder="Meeting Password (optional)"
@@ -625,7 +625,7 @@ const ScheduleSession = () => {
               onChange={handleChange}
               className="border border-blue-200/50 bg-white/90 px-4 py-3 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-400 focus:outline-none transition"
               variants={itemVariants}
-            />
+            /> */}
             <motion.textarea
               name="description"
               placeholder="Describe the session (topics, goals, etc.)"

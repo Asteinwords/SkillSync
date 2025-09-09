@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'https://skillsync-cvqg.onrender.com/api', // Vite proxy forwards to https://skillsync-cvqg.onrender.com/api
+  baseURL: 'http://localhost:5000/api', // Vite proxy forwards to https://skillsync-cvqg.onrender.com/api
 });
 
 API.interceptors.response.use(

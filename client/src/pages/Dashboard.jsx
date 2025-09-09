@@ -49,18 +49,10 @@ const itemVariants = {
   },
 };
 
-const getStreakDates = (streak) => {
-  const dates = new Set();
-  for (let i = 0; i < streak; i++) {
-    dates.add(moment().subtract(i, 'days').format('YYYY-MM-DD'));
-  }
-  return dates;
-};
-
-const Heatmap = ({ streak }) => {
+const Heatmap = ({ visitHistory }) => {
   const today = moment();
   const startDate = today.clone().subtract(11, 'months').startOf('month');
-  const streakDates = getStreakDates(streak);
+  const streakDates = new Set(visitHistory); // Use visitHistory directly
 
   const months = useMemo(() => {
     const monthsArray = [];
@@ -86,7 +78,7 @@ const Heatmap = ({ streak }) => {
       currentMonth.add(1, 'month');
     }
     return monthsArray;
-  }, [streak, today]);
+  }, [today]);
 
   return (
     <div className="overflow-x-auto max-w-full px-2 sm:px-4 py-3 bg-white/90 backdrop-blur-sm rounded-xl border border-blue-200/50 shadow-sm scrollbar-none sm:scrollbar-none">
@@ -163,32 +155,62 @@ const Dashboard = () => {
 
     const fetchUserIdAndProfile = async () => {
       try {
+        setIsLoading(true);
+        // Fetch user profile
         const { data: userData } = await API.get('/users/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('Profile Data:', userData);
-        setUser(userData);
-        if (userData.skillsOffered?.length) setSkillsOffered(userData.skillsOffered);
-        if (userData.skillsWanted?.length) setSkillsWanted(userData.skillsWanted);
+
+        // Update badge based on points
+        let newBadge = 'Beginner';
+        if (userData.points > 100) newBadge = 'Expert';
+        else if (userData.points > 50) newBadge = 'Mentor';
+        else if (userData.points > 20) newBadge = 'Contributor';
+
+        let updatedUserData = { ...userData };
+        if (newBadge !== userData.badge) {
+          const { data: updatedProfile } = await API.put(
+            '/users/profile-info',
+            { badge: newBadge },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          updatedUserData = { ...updatedProfile, badge: newBadge };
+          console.log('Updated Badge:', updatedUserData.badge);
+        }
+
+        // Update streak
+        const { data: streakData } = await API.post(
+          '/users/update-streak',
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        updatedUserData = {
+          ...updatedUserData,
+          streak: streakData.streak,
+          points: streakData.points,
+        };
+
+        // Set user state with all updates
+        setUser(updatedUserData);
+        console.log('Final User State:', updatedUserData);
+
+        // Set other states
+        if (userData.skillsOffered?.length)
+          setSkillsOffered(userData.skillsOffered);
+        if (userData.skillsWanted?.length)
+          setSkillsWanted(userData.skillsWanted);
         setAboutMe(userData.aboutMe || '');
         if (userData.education?.length) setEducation(userData.education);
 
-        const { data: streakData } = await API.post('/users/update-streak', {}, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUser(prev => ({ ...prev, streak: streakData.streak, points: streakData.points }));
-
-        const visitHistory = [];
-        const today = moment().startOf('day');
-        for (let i = 0; i < streakData.streak; i++) {
-          visitHistory.push(today.clone().subtract(i, 'days').format('YYYY-MM-DD'));
-        }
+        // Update streak data
         setStreakData({
-          totalDays: streakData.streak,
-          maxStreak: Math.max(streakData.streak, streakData.streak || 0),
+          totalDays: streakData.totalDays,
+          maxStreak: streakData.maxStreak,
           currentStreak: streakData.streak,
-          visitHistory,
+          visitHistory: streakData.visitHistory,
         });
+
         setIsLoading(false);
       } catch (err) {
         toast.error('Failed to fetch profile or update streak');
@@ -368,7 +390,7 @@ const Dashboard = () => {
                   loading="lazy"
                 />
                 <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
-                  <label className="cursor-pointer text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-500 transition text-center">
+                  {/* <label className="cursor-pointer text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-500 transition text-center">
                     Upload Photo
                     <input
                       type="file"
@@ -376,7 +398,7 @@ const Dashboard = () => {
                       hidden
                       onChange={(e) => e.target.files[0] && handleImageUpload(e.target.files[0])}
                     />
-                  </label>
+                  </label> */}
                   <button
                     onClick={() => setShowAvatarPicker(true)}
                     className="text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-500 transition"
@@ -432,7 +454,7 @@ const Dashboard = () => {
               <span>Visits in the past year: {streakData.totalDays}</span>
               <span>Total: {streakData.totalDays} | Max: {streakData.maxStreak} | Current: {streakData.currentStreak}</span>
             </div>
-            <Heatmap streak={streakData.totalDays} />
+            <Heatmap visitHistory={streakData.visitHistory} />
             <div className="text-xs text-gray-500 mt-2 sm:mt-3">
               {moment().subtract(1, 'year').format('MMM DD, YYYY')} - {moment().format('MMM DD, YYYY')}
             </div>
@@ -678,7 +700,7 @@ const Dashboard = () => {
                         {(isStatic ? avatars : Array.from({ length: 6 })).map((avatar, idx) => {
                           const seed = isStatic ? null : `${user?.name || 'User'}-${style}-${idx}`;
                           const avatarUrl = isStatic ? avatar : `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}`;
-                          console.log(`Rendering avatar: ${style}-${idx}, URL: ${avatarUrl}`); // Debug avatar URLs
+                          console.log(`Rendering avatar: ${style}-${idx}, URL: ${avatarUrl}`);
                           return (
                             <motion.img
                               key={`${style}-${idx}`}

@@ -58,6 +58,8 @@ const userSchema = new mongoose.Schema({
   otpExpires: { type: Date },
   resetPasswordToken: { type: String },
   resetPasswordExpire: { type: Date },
+  // New field for visit history
+  visitHistory: [{ type: Date, default: [] }], // Array of dates when user was active
 }, { timestamps: true });
 
 // Hash password before saving

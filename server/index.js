@@ -50,7 +50,7 @@ const socketUserMap = new Map();
 
 // Define allowed origins
 const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:3000',
+  process.env.CLIENT_URL || 'http://localhost:5173',
   'https://fancy-kitsune-3545b7.netlify.app',
 ];
 
@@ -137,6 +137,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/post', postRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/contact', require('./routes/contactRoutes'));
 app.post('/api/rooms/leave', async (req, res) => {
   try {
     let body = req.body;

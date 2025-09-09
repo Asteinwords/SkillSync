@@ -123,22 +123,43 @@ const ChatApp = () => {
   }, [userId]);
 
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center text-gray-600">🔄 Loading...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center text-gray-600 text-lg">
+        🔄 Loading...
+      </div>
+    );
   }
 
   return (
-    <motion.div className="flex h-screen bg-gradient-to-br from-blue-200 via-purple-100 to-pink-200 relative">
+    <motion.div className="flex h-screen bg-gradient-to-br from-blue-200 via-purple-100 to-pink-200 relative overflow-hidden">
       <img
         src={Stars}
         alt="Stars"
-        className="absolute inset-0 w-full h-full object-cover opacity-20 z-0 pointer-events-none"
+        className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none"
       />
-      {/* Mobile: Show Sidebar or ChatWindow exclusively; Desktop: Show both */}
-      <div className={`h-full ${activeUser ? 'hidden sm:flex sm:w-72' : 'flex w-full sm:w-72'}`}>
-        <Sidebar contacts={contacts} onUserSelect={setActiveUser} unreadCounts={unreadCounts} />
-      </div>
-      <div className={`h-full ${activeUser ? 'flex w-full sm:flex-1' : 'hidden sm:flex sm:flex-1'}`}>
-        <ChatWindow activeUser={activeUser} userId={userId} setActiveUser={setActiveUser} />
+      <div className="flex w-full h-full">
+        <div
+          className={`${
+            activeUser ? 'hidden' : 'flex'
+          } w-full sm:w-80 sm:flex h-full sm:border-r sm:border-gray-200 z-10`}
+        >
+          <Sidebar
+            contacts={contacts}
+            onUserSelect={setActiveUser}
+            unreadCounts={unreadCounts}
+          />
+        </div>
+        <div
+          className={`${
+            activeUser ? 'flex' : 'hidden sm:flex'
+          } flex-1 h-full z-10`}
+        >
+          <ChatWindow
+            activeUser={activeUser}
+            userId={userId}
+            setActiveUser={setActiveUser}
+          />
+        </div>
       </div>
     </motion.div>
   );

@@ -171,6 +171,7 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
 
   const handleEmojiClick = (emojiData) => {
     setMsg((prev) => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
   };
 
   const isDeleteForEveryoneDisabled = selectedMessages.some((id) => {
@@ -182,28 +183,37 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
   });
 
   if (isLoading || !currentUser || !activeUser) {
-    return <div className="flex-1 p-6 text-gray-600 text-lg">🔄 Loading chat...</div>;
+    return (
+      <div className="flex-1 flex items-center justify-center text-gray-600 text-lg">
+        🔄 Loading chat...
+      </div>
+    );
   }
 
   return (
-    <div className="mt-0 flex-1 flex flex-col bg-gradient-to-b from-slate-100 to-white">
-      <div className="p-4 bg-blue-600 text-white font-semibold text-lg shadow-sm flex justify-between items-center relative">
+    <div className="flex-1 flex flex-col h-full bg-gradient-to-b from-slate-100 to-white">
+      <div className="flex items-center justify-between p-3 bg-blue-600 text-white shadow-md">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveUser(null)}
-            className="text-white p-2"
+            className="p-2 sm:hidden"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <span>{activeUser.name}</span>
+          <img
+            src={activeUser.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${activeUser.name}`}
+            alt={activeUser.name}
+            className="w-10 h-10 rounded-full object-cover"
+          />
+          <span className="text-lg font-semibold truncate">{activeUser.name}</span>
         </div>
         {selectedMessages.length > 0 && (
           <div className="relative">
             <button
               onClick={() => setShowDeleteOptions(!showDeleteOptions)}
-              className="text-sm bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-white"
+              className="text-sm bg-red-500 hover:bg-red-600 px-3 py-1 rounded-full"
             >
-              🗑 Delete ({selectedMessages.length})
+              🗑 ({selectedMessages.length})
             </button>
             <AnimatePresence>
               {showDeleteOptions && (
@@ -211,6 +221,7 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.15 }}
                   className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg border border-gray-200 z-50"
                 >
                   <button
@@ -237,7 +248,7 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
         )}
       </div>
 
-      <div className="flex-1 p-4 overflow-y-auto bg-white space-y-3">
+      <div className="flex-1 p-4 overflow-y-auto bg-[url('/path/to/whatsapp-bg.png')] bg-repeat bg-[length:300px] space-y-3">
         {messages.map((m, i) => {
           const isFromCurrentUser = m.from === currentUser.user._id;
           const isDeletedForCurrentUser = m.deletedBy?.includes(currentUser.user._id);
@@ -249,37 +260,64 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
               key={i}
               ref={scrollRef}
               onClick={() => m._id && toggleSelect(m._id)}
-              className={`flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'} mb-2`}
             >
               <div
-                className={`px-4 py-2 rounded-xl shadow max-w-[70%] text-sm cursor-pointer
+                className={`relative px-4 py-2 rounded-lg max-w-[75%] text-sm cursor-pointer
                   ${selectedMessages.includes(m._id) ? 'ring-2 ring-red-400' : ''}
                   ${
                     isFromCurrentUser
                       ? 'bg-blue-500 text-white rounded-tr-sm'
                       : 'bg-gray-200 text-gray-800 rounded-tl-sm'
-                  }`}
+                  } shadow-sm`}
               >
                 <p className={m.isDeleted ? 'italic text-gray-400' : ''}>
                   {m.isDeleted ? 'Message deleted' : m.message}
                 </p>
                 <p className="text-[10px] mt-1 text-right opacity-70">
-                  {new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(m.time).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                 </p>
+                <div
+                  className={`absolute bottom-0 ${
+                    isFromCurrentUser ? '-right-2' : '-left-2'
+                  } w-0 h-0 border-t-8 border-t-transparent ${
+                    isFromCurrentUser
+                      ? 'border-l-8 border-l-blue-500'
+                      : 'border-r-8 border-r-gray-200'
+                  } border-b-8 border-b-transparent`}
+                />
               </div>
             </div>
           );
         })}
       </div>
 
-      {showEmojiPicker && (
-        <div className="absolute bottom-24 left-4 z-50">
-          <EmojiPicker onEmojiClick={handleEmojiClick} />
-        </div>
-      )}
+      <AnimatePresence>
+        {showEmojiPicker && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.15 }}
+            className="absolute bottom-16 left-2 z-50 w-[90%] max-w-xs sm:max-w-sm"
+          >
+            <EmojiPicker
+              onEmojiClick={handleEmojiClick}
+              width="100%"
+              height={350}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="p-2 bg-white border-t shadow-inner flex gap-2 items-center sticky bottom-0">
-        <button onClick={() => setShowEmojiPicker((prev) => !prev)} className="text-2xl px-2">
+      <div className="p-2 bg-white border-t shadow-inner flex items-center gap-2 sticky bottom-0">
+        <button
+          onClick={() => setShowEmojiPicker((prev) => !prev)}
+          className="text-xl p-2 text-gray-600 hover:text-gray-800"
+        >
           😊
         </button>
         <input
@@ -288,14 +326,13 @@ const ChatWindow = ({ activeUser, userId, setActiveUser }) => {
           onChange={(e) => setMsg(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
           placeholder="Type a message..."
-          className="flex-1 border border-blue-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 border border-blue-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
         />
         <button
           onClick={sendMessage}
-          className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full transition sm:bg-blue-600 sm:hover:bg-blue-700 sm:text-white sm:px-5 sm:py-2 sm:rounded-lg sm:transition"
+          className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full"
         >
-          <Send className="w-5 h-5 sm:hidden" />
-          <span className="hidden sm:inline">Send</span>
+          <Send className="w-5 h-5" />
         </button>
       </div>
     </div>

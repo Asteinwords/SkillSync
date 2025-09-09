@@ -500,42 +500,76 @@ exports.updateProfileInfo = async (req, res) => {
     res.status(500).json({ message: `Failed to update profile info: ${err.message}` });
   }
 };
-
 // @route POST /api/users/update-streak
 exports.updateStreak = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
+
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const lastVisited = user.lastVisited ? new Date(user.lastVisited) : null;
-    if (lastVisited) lastVisited.setHours(0, 0, 0, 0);
-    const oneDayInMs = 24 * 60 * 60 * 1000;
-    let streak = user.streak || 0;
-    let points = user.points || 0;
-    if (!lastVisited) {
-      streak = 1;
-      points += 2;
-    } else if (lastVisited.getTime() === today.getTime()) {
-      return res.json({ streak: user.streak, points: user.points });
-    } else if (lastVisited.getTime() === today.getTime() - oneDayInMs) {
-      streak += 1;
-      points += 2;
-    } else if (lastVisited.getTime() < today.getTime() - oneDayInMs) {
-      streak = 1;
-      points += 2;
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
+
+    // Initialize visitHistory if undefined
+    if (!user.visitHistory) {
+      user.visitHistory = [];
     }
-    user.streak = streak;
+
+    // Add today's date to visitHistory if not already present
+    const todayStr = today.toISOString().split('T')[0];
+    if (!user.visitHistory.some(date => date.toISOString().split('T')[0] === todayStr)) {
+      user.visitHistory.push(today);
+      user.points = (user.points || 0) + 2; // Add 2 points for new activity
+    }
+
+    // Calculate streaks
+    const oneDayInMs = 24 * 60 * 60 * 1000;
+    const sortedDates = user.visitHistory
+      .map(date => new Date(date).setHours(0, 0, 0, 0))
+      .sort((a, b) => b - a); // Sort in descending order (most recent first)
+
+    let currentStreak = 0;
+    let maxStreak = 0;
+    let currentRun = 1;
+
+    // Calculate CURRENT and MAX streaks
+    if (sortedDates.length > 0 && sortedDates[0] === today.getTime()) {
+      currentStreak = 1; // Start with today
+      let prevDate = sortedDates[0];
+      for (let i = 1; i < sortedDates.length; i++) {
+        const currentDate = sortedDates[i];
+        if (prevDate - currentDate === oneDayInMs) {
+          currentRun++;
+          currentStreak++;
+        } else {
+          maxStreak = Math.max(maxStreak, currentRun);
+          currentRun = 1;
+          if (currentStreak > 0) break; // Stop counting current streak after a break
+        }
+        prevDate = currentDate;
+      }
+      maxStreak = Math.max(maxStreak, currentRun);
+    }
+
+    // TOTAL is the number of unique active days
+    const totalDays = sortedDates.length;
+
+    // Update user
+    user.streak = currentStreak;
     user.lastVisited = today;
-    user.points = points;
     await user.save();
-    res.json({ streak: user.streak, points: user.points });
+
+    res.json({
+      streak: currentStreak,
+      maxStreak,
+      totalDays,
+      visitHistory: sortedDates.map(date => new Date(date).toISOString().split('T')[0]),
+      points: user.points,
+    });
   } catch (err) {
     console.error(`[${new Date().toISOString()}] Update streak error:`, err);
     res.status(500).json({ message: `Failed to update streak: ${err.message}` });
   }
 };
-
 // @route DELETE /api/users/delete
 exports.deleteUser = async (req, res) => {
   try {
