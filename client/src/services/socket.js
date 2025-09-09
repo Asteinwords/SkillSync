@@ -11,7 +11,7 @@ import { io } from 'socket.io-client';
 
 const user = JSON.parse(localStorage.getItem('user')); // or use currentUser from auth context
 
-const socket = io('https://skillsync-cvqg.onrender.com', {
+const socket = io('http://localhost:5000', {
   transports: ['websocket','polling'],
   withCredentials: true,
   auth: {
